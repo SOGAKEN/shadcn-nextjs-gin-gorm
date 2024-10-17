@@ -1,6 +1,6 @@
 "use client";
 
-import { signOut, useSession } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IncidentDashboard } from "@/components/Incident-dashboard";
@@ -35,20 +35,6 @@ export default function DashboardPage() {
 
   return (
     <>
-      <div>
-        <h1>ダッシュボード</h1>
-        {userData ? (
-          <p>ようこそ、{userData.email}さん</p>
-        ) : (
-          <p>ユーザー情報を取得中...</p>
-        )}
-        <button
-          type="button"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-        >
-          ログアウト
-        </button>
-      </div>
       <IncidentDashboard />
     </>
   );
