@@ -16,6 +16,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Separator } from "@/components/ui/separator"
 
 interface IncidentResponse {
   id: number
@@ -337,6 +338,7 @@ export function IncidentDashboard() {
                     <div className="font-medium">{incident.content}</div>
                     <div className="text-sm text-muted-foreground">
                       優先度: {incident.priority}
+                
                     </div>
                   </TableCell>
                   <TableCell>{incident.assignee}</TableCell>
@@ -348,78 +350,87 @@ export function IncidentDashboard() {
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent  className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>インシデント詳細</DialogTitle>
-            <DialogDescription>
-              ID: {selectedIncident?.id} - {selectedIncident?.content}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-semibold">ステータス</h3>
-                <p>{selectedIncident?.status}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold">判定</h3>
-                <p>{selectedIncident?.judgment}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold">担当者</h3>
-                <p>{selectedIncident?.assignee}</p>
-              </div>
-              <div>
-                <h3 className="font-semibold">優先度</h3>
-                <p>{selectedIncident?.priority}</p>
-              </div>
+        <DialogContent className="max-w-[80vw] w-full p-0 h-[95vh]">
+          <div className="grid grid-cols-2 h-full">
+            <div className="p-6 bg-gray-100 flex flex-col">
+              <DialogTitle className="text-2xl font-bold mb-4">インシデント内容</DialogTitle>
+              <DialogDescription className="text-lg mb-2">
+                ID: {selectedIncident?.id}
+              </DialogDescription>
+              <p className="text-lg flex-grow">{selectedIncident?.content}</p>
             </div>
-            <div>
-              <h3 className="font-semibold mb-2">ステータス更新</h3>
-              <div className="flex gap-2">
-                <Button onClick={() => handleStatusUpdate("未解決")} variant="outline">未解決</Button>
-                <Button onClick={() => handleStatusUpdate("調査中")} variant="outline">調査中</Button>
-                <Button onClick={() => handleStatusUpdate("解決済み")} variant="outline">解決済み</Button>
-                <Button onClick={() => handleStatusUpdate("クローズ")} variant="outline">クローズ</Button>
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">対応履歴</h3>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>インシデントID</TableHead>
-                    <TableHead>日付</TableHead>
-                    <TableHead>対応内容</TableHead>
-                    <TableHead>名前</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedIncident?.responses.map((response) => (
-                    <TableRow key={response.id}>
-                      <TableCell>{selectedIncident.id}</TableCell>
-                      <TableCell>{response.date}</TableCell>
-                      <TableCell>{response.content}</TableCell>
-                      <TableCell>{response.responder}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-2">新規対応記録</h3>
-              <div className="grid gap-2">
-                <Textarea
-                  placeholder="対応内容を入力してください"
-                  value={newResponse}
-                  onChange={(e) => setNewResponse(e.target.value)}
-                />
-                <Input
-                  placeholder="名前"
-                  value={responderName}
-                  onChange={(e) => setResponderName(e.target.value)}
-                />
-                <Button onClick={handleResponseSubmit}>記録を追加</Button>
+            <div className="p-6 overflow-y-auto h-full">
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-semibold">ステータス</h4>
+                    <p>{selectedIncident?.status}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">判定</h4>
+                    <p>{selectedIncident?.judgment}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">担当者</h4>
+                    <p>{selectedIncident?.assignee}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">優先度</h4>
+                    <p>{selectedIncident?.priority}</p>
+                  </div>
+                  <div>
+                    <h4 className="font-semibold">発生日時</h4>
+                    <p>{selectedIncident?.datetime}</p>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">ステータス更新</h4>
+                  <div className="flex gap-2 flex-wrap">
+                    <Button onClick={() => handleStatusUpdate("未解決")} variant="outline">未解決</Button>
+                    <Button onClick={() => handleStatusUpdate("調査中")} variant="outline">調査中</Button>
+                    <Button onClick={() => handleStatusUpdate("解決済み")} variant="outline">解決済み</Button>
+                    <Button onClick={() => handleStatusUpdate("クローズ")} variant="outline">クローズ</Button>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">対応履歴</h4>
+                  <div className="max-h-[200px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>日付</TableHead>
+                          <TableHead>対応内容</TableHead>
+                          <TableHead>名前</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedIncident?.responses.map((response) => (
+                          <TableRow key={response.id}>
+                            <TableCell>{response.date}</TableCell>
+                            <TableCell>{response.content}</TableCell>
+                            <TableCell>{response.responder}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="font-semibold mb-2">新規対応記録</h4>
+                  <div className="grid gap-2">
+                    <Textarea
+                      placeholder="対応内容を入力してください"
+                      value={newResponse}
+                      onChange={(e) => setNewResponse(e.target.value)}
+                    />
+                    <Input
+                      placeholder="名前"
+                      value={responderName}
+                      onChange={(e) => setResponderName(e.target.value)}
+                    />
+                    <Button onClick={handleResponseSubmit}>記録を追加</Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
