@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"main/config"
+	"main/logger"
 	"main/routes"
 	"time"
 
@@ -17,6 +18,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	// ロガーの初期化
+	logger.Init()
+	defer logger.Log.Sync()
 
 	// データベース接続
 	config.ConnectDatabase()
@@ -37,5 +42,8 @@ func main() {
 	routes.InitializeRoutes(r)
 
 	// サーバー起動
-	r.Run(":8080")
+	logger.Log.Info("Starting server on :8080")
+	if err := r.Run(":8080"); err != nil {
+		logger.Log.Fatal("Failed to start server", zap.Error(err))
+	}
 }
