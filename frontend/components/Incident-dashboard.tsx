@@ -4,6 +4,7 @@ import * as React from "react"
 import { AlertCircle, CheckCircle, Clock, XCircle, Search, Calendar as CalendarIcon } from "lucide-react"
 import { format, isWithinInterval } from "date-fns"
 import { ja } from "date-fns/locale"
+import { DateRange } from "react-day-picker"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -72,17 +73,14 @@ export function IncidentDashboard() {
   const [statusFilter, setStatusFilter] = React.useState("全て")
   const [judgmentFilter, setJudgmentFilter] = React.useState("全て")
   const [assigneeFilter, setAssigneeFilter] = React.useState("全て")
-  const [dateRange, setDateRange] = React.useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined,
-  })
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined)
   const [searchQuery, setSearchQuery] = React.useState("")
 
   const resetFilters = () => {
     setStatusFilter("全て")
     setJudgmentFilter("全て")
     setAssigneeFilter("全て")
-    setDateRange({ from: undefined, to: undefined })
+    setDateRange(undefined)
     setSearchQuery("")
   }
 
@@ -91,8 +89,8 @@ export function IncidentDashboard() {
     const matchesJudgment = judgmentFilter === "全て" || incident.judgment === judgmentFilter
     const matchesAssignee = assigneeFilter === "全て" || incident.assignee === assigneeFilter
     const matchesDate =
-      !dateRange.from ||
-      !dateRange.to ||
+      !dateRange?.from ||
+      !dateRange?.to ||
       isWithinInterval(new Date(incident.datetime), { start: dateRange.from, end: dateRange.to })
     const matchesSearch = incident.content.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesStatus && matchesJudgment && matchesAssignee && matchesDate && matchesSearch
@@ -179,11 +177,11 @@ export function IncidentDashboard() {
                   <Button
                     variant={"outline"}
                     className={`w-full justify-start text-left font-normal h-10 ${
-                      !dateRange.from && !dateRange.to && "text-muted-foreground"
+                      !dateRange?.from && !dateRange?.to && "text-muted-foreground"
                     }`}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
+                    {dateRange?.from ? (
                       dateRange.to ? (
                         <>
                           {format(dateRange.from, "PPP", { locale: ja })} -{" "}
@@ -201,7 +199,7 @@ export function IncidentDashboard() {
                   <Calendar
                     initialFocus
                     mode="range"
-                    defaultMonth={dateRange.from}
+                    defaultMonth={dateRange?.from}
                     selected={dateRange}
                     onSelect={setDateRange}
                     numberOfMonths={2}
@@ -248,7 +246,7 @@ export function IncidentDashboard() {
                             ? "outline"
                             : incident.status === "クローズ"
                             ? "default"
-                            : "custom"
+                            : "secondary"
                         }
                         className={
                           incident.status === "解決済み"
@@ -262,7 +260,7 @@ export function IncidentDashboard() {
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={incident.judgment === "要対応" ? "destructive" : "custom"}
+                      variant={incident.judgment === "要対応" ? "destructive" : "secondary"}
                       className={incident.judgment === "静観" ? "bg-white text-green-500 border border-green-500" : ""}
                     >
                       {incident.judgment}
