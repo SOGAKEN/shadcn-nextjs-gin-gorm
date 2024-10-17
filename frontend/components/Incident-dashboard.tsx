@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { AlertCircle, CheckCircle, Clock, XCircle, Search, Calendar as CalendarIcon } from "lucide-react"
-import { format } from "date-fns"
+import { format, isWithinInterval } from "date-fns"
 import { ja } from "date-fns/locale"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -72,14 +72,28 @@ export function IncidentDashboard() {
   const [statusFilter, setStatusFilter] = React.useState("全て")
   const [judgmentFilter, setJudgmentFilter] = React.useState("全て")
   const [assigneeFilter, setAssigneeFilter] = React.useState("全て")
-  const [dateFilter, setDateFilter] = React.useState<Date | undefined>(undefined)
+  const [dateRange, setDateRange] = React.useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  })
   const [searchQuery, setSearchQuery] = React.useState("")
+
+  const resetFilters = () => {
+    setStatusFilter("全て")
+    setJudgmentFilter("全て")
+    setAssigneeFilter("全て")
+    setDateRange({ from: undefined, to: undefined })
+    setSearchQuery("")
+  }
 
   const filteredIncidents = incidents.filter((incident) => {
     const matchesStatus = statusFilter === "全て" || incident.status === statusFilter
     const matchesJudgment = judgmentFilter === "全て" || incident.judgment === judgmentFilter
     const matchesAssignee = assigneeFilter === "全て" || incident.assignee === assigneeFilter
-    const matchesDate = !dateFilter || incident.datetime.startsWith(format(dateFilter, "yyyy-MM-dd"))
+    const matchesDate =
+      !dateRange.from ||
+      !dateRange.to ||
+      isWithinInterval(new Date(incident.datetime), { start: dateRange.from, end: dateRange.to })
     const matchesSearch = incident.content.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesStatus && matchesJudgment && matchesAssignee && matchesDate && matchesSearch
   })
@@ -119,7 +133,7 @@ export function IncidentDashboard() {
         <CardContent>
           <div className="flex flex-wrap gap-4 mb-4 items-start">
             <div className="flex-1 min-w-[200px] h-10">
-              <Select onValueChange={setStatusFilter}>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="ステータスでフィルター" />
                 </SelectTrigger>
@@ -133,7 +147,7 @@ export function IncidentDashboard() {
               </Select>
             </div>
             <div className="flex-1 min-w-[200px] h-10">
-              <Select onValueChange={setJudgmentFilter}>
+              <Select value={judgmentFilter} onValueChange={setJudgmentFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="判定でフィルター" />
                 </SelectTrigger>
@@ -145,7 +159,7 @@ export function IncidentDashboard() {
               </Select>
             </div>
             <div className="flex-1 min-w-[200px] h-10">
-              <Select onValueChange={setAssigneeFilter}>
+              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="担当者でフィルター" />
                 </SelectTrigger>
@@ -165,19 +179,32 @@ export function IncidentDashboard() {
                   <Button
                     variant={"outline"}
                     className={`w-full justify-start text-left font-normal h-10 ${
-                      !dateFilter && "text-muted-foreground"
+                      !dateRange.from && !dateRange.to && "text-muted-foreground"
                     }`}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dateFilter ? format(dateFilter, "PPP", { locale: ja }) : <span>日付でフィルター</span>}
+                    {dateRange.from ? (
+                      dateRange.to ? (
+                        <>
+                          {format(dateRange.from, "PPP", { locale: ja })} -{" "}
+                          {format(dateRange.to, "PPP", { locale: ja })}
+                        </>
+                      ) : (
+                        format(dateRange.from, "PPP", { locale: ja })
+                      )
+                    ) : (
+                      <span>日付範囲でフィルター</span>
+                    )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0">
+                <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
-                    mode="single"
-                    selected={dateFilter}
-                    onSelect={setDateFilter}
                     initialFocus
+                    mode="range"
+                    defaultMonth={dateRange.from}
+                    selected={dateRange}
+                    onSelect={setDateRange}
+                    numberOfMonths={2}
                   />
                 </PopoverContent>
               </Popover>
@@ -191,6 +218,11 @@ export function IncidentDashboard() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+          </div>
+          <div className="flex justify-end mb-4">
+            <Button onClick={resetFilters} variant="outline">
+              フィルター解除
+            </Button>
           </div>
           <Table>
             <TableHeader>
@@ -214,9 +246,14 @@ export function IncidentDashboard() {
                             ? "destructive"
                             : incident.status === "調査中"
                             ? "outline"
-                            : incident.status === "解決済み"
-                            ? "secondary"
-                            : "default"
+                            : incident.status === "クローズ"
+                            ? "default"
+                            : "custom"
+                        }
+                        className={
+                          incident.status === "解決済み"
+                            ? "bg-white text-green-500 border border-green-500"
+                            : ""
                         }
                       >
                         {incident.status}
@@ -225,7 +262,8 @@ export function IncidentDashboard() {
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={incident.judgment === "要対応" ? "destructive" : "success"}
+                      variant={incident.judgment === "要対応" ? "destructive" : "custom"}
+                      className={incident.judgment === "静観" ? "bg-white text-green-500 border border-green-500" : ""}
                     >
                       {incident.judgment}
                     </Badge>
