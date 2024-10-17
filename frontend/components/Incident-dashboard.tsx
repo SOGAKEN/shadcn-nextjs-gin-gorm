@@ -17,6 +17,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 
+interface IncidentResponse {
+  id: number
+  date: string
+  content: string
+  responder: string
+}
+
 interface Incident {
   id: number
   datetime: string
@@ -25,13 +32,7 @@ interface Incident {
   content: string
   assignee: string
   priority: string
-}
-
-interface IncidentResponse {
-  id: number
-  date: string
-  content: string
-  responder: string
+  responses: IncidentResponse[]
 }
 
 const incidents: Incident[] = [
@@ -43,6 +44,7 @@ const incidents: Incident[] = [
     content: "データベース接続エラー",
     assignee: "山田太郎",
     priority: "高",
+    responses: [],
   },
   {
     id: 2,
@@ -52,6 +54,7 @@ const incidents: Incident[] = [
     content: "アプリケーションの応答遅延",
     assignee: "佐藤花子",
     priority: "中",
+    responses: [],
   },
   {
     id: 3,
@@ -61,6 +64,7 @@ const incidents: Incident[] = [
     content: "ユーザー認証の問題",
     assignee: "鈴木一郎",
     priority: "低",
+    responses: [],
   },
   {
     id: 4,
@@ -70,6 +74,7 @@ const incidents: Incident[] = [
     content: "バックアップ失敗",
     assignee: "高橋次郎",
     priority: "中",
+    responses: [],
   },
 ]
 
@@ -96,9 +101,9 @@ export function IncidentDashboard() {
   const [searchQuery, setSearchQuery] = React.useState("")
   const [selectedIncident, setSelectedIncident] = React.useState<Incident | null>(null)
   const [isModalOpen, setIsModalOpen] = React.useState(false)
-  const [incidentResponses, setIncidentResponses] = React.useState<IncidentResponse[]>([])
   const [newResponse, setNewResponse] = React.useState("")
   const [responderName, setResponderName] = React.useState("")
+  const [incidentsState, setIncidentsState] = React.useState<Incident[]>(incidents)
 
   const resetFilters = () => {
     setStatusFilter("全て")
@@ -108,7 +113,7 @@ export function IncidentDashboard() {
     setSearchQuery("")
   }
 
-  const filteredIncidents = incidents.filter((incident) => {
+  const filteredIncidents = incidentsState.filter((incident) => {
     const matchesStatus = statusFilter === "全て" || incident.status === statusFilter
     const matchesJudgment = judgmentFilter === "全て" || incident.judgment === judgmentFilter
     const matchesAssignee = assigneeFilter === "全て" || incident.assignee === assigneeFilter
@@ -120,10 +125,10 @@ export function IncidentDashboard() {
     return matchesStatus && matchesJudgment && matchesAssignee && matchesDate && matchesSearch
   })
 
-  const unresolved = incidents.filter(i => i.status === "未解決").length
-  const investigating = incidents.filter(i => i.status === "調査中").length
+  const unresolved = incidentsState.filter(i => i.status === "未解決").length
+  const investigating = incidentsState.filter(i => i.status === "調査中").length
 
-  const uniqueAssignees = Array.from(new Set(incidents.map(i => i.assignee)))
+  const uniqueAssignees = Array.from(new Set(incidentsState.map(i => i.assignee)))
 
   const handleIncidentClick = (incident: Incident) => {
     setSelectedIncident(incident)
@@ -132,23 +137,29 @@ export function IncidentDashboard() {
 
   const handleStatusUpdate = (newStatus: string) => {
     if (selectedIncident) {
-      const updatedIncidents = incidents.map(inc => 
+      const updatedIncidents = incidentsState.map(inc => 
         inc.id === selectedIncident.id ? { ...inc, status: newStatus } : inc
       )
-      // ここで更新されたインシデントリストを状態や API に保存する処理を追加
+      setIncidentsState(updatedIncidents)
       setSelectedIncident({ ...selectedIncident, status: newStatus })
     }
   }
 
   const handleResponseSubmit = () => {
-    if (newResponse && responderName) {
+    if (selectedIncident && newResponse && responderName) {
       const newIncidentResponse: IncidentResponse = {
-        id: incidentResponses.length + 1,
+        id: selectedIncident.responses.length + 1,
         date: format(new Date(), "yyyy-MM-dd HH:mm"),
         content: newResponse,
         responder: responderName,
       }
-      setIncidentResponses([...incidentResponses, newIncidentResponse])
+      const updatedIncidents = incidentsState.map(inc => 
+        inc.id === selectedIncident.id
+          ? { ...inc, responses: [...inc.responses, newIncidentResponse] }
+          : inc
+      )
+      setIncidentsState(updatedIncidents)
+      setSelectedIncident({ ...selectedIncident, responses: [...selectedIncident.responses, newIncidentResponse] })
       setNewResponse("")
       setResponderName("")
     }
@@ -278,7 +289,8 @@ export function IncidentDashboard() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[100px]">ステータス</TableHead>
+                <TableHead className="w-[100px]">ID</TableHead>
+                <TableHead className="w-[150px]">ステータス</TableHead>
                 <TableHead className="w-[100px]">判定</TableHead>
                 <TableHead>日時</TableHead>
                 <TableHead>内容</TableHead>
@@ -288,6 +300,7 @@ export function IncidentDashboard() {
             <TableBody>
               {filteredIncidents.map((incident) => (
                 <TableRow key={incident.id} onClick={() => handleIncidentClick(incident)} className="cursor-pointer hover:bg-gray-100">
+                  <TableCell>{incident.id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {getStatusIcon(incident.status)}
@@ -335,14 +348,14 @@ export function IncidentDashboard() {
       </Card>
 
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent  className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>インシデント詳細</DialogTitle>
             <DialogDescription>
               ID: {selectedIncident?.id} - {selectedIncident?.content}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid  gap-4">
+          <div className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="font-semibold">ステータス</h3>
@@ -375,14 +388,16 @@ export function IncidentDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>インシデントID</TableHead>
                     <TableHead>日付</TableHead>
                     <TableHead>対応内容</TableHead>
                     <TableHead>名前</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {incidentResponses.map((response) => (
+                  {selectedIncident?.responses.map((response) => (
                     <TableRow key={response.id}>
+                      <TableCell>{selectedIncident.id}</TableCell>
                       <TableCell>{response.date}</TableCell>
                       <TableCell>{response.content}</TableCell>
                       <TableCell>{response.responder}</TableCell>
