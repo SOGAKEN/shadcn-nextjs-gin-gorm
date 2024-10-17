@@ -14,8 +14,27 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { Textarea } from "@/components/ui/textarea"
 
-const incidents = [
+interface Incident {
+  id: number
+  datetime: string
+  status: string
+  judgment: string
+  content: string
+  assignee: string
+  priority: string
+}
+
+interface IncidentResponse {
+  id: number
+  date: string
+  content: string
+  responder: string
+}
+
+const incidents: Incident[] = [
   {
     id: 1,
     datetime: "2023-05-15 14:30",
@@ -75,6 +94,11 @@ export function IncidentDashboard() {
   const [assigneeFilter, setAssigneeFilter] = React.useState("全て")
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined)
   const [searchQuery, setSearchQuery] = React.useState("")
+  const [selectedIncident, setSelectedIncident] = React.useState<Incident | null>(null)
+  const [isModalOpen, setIsModalOpen] = React.useState(false)
+  const [incidentResponses, setIncidentResponses] = React.useState<IncidentResponse[]>([])
+  const [newResponse, setNewResponse] = React.useState("")
+  const [responderName, setResponderName] = React.useState("")
 
   const resetFilters = () => {
     setStatusFilter("全て")
@@ -100,6 +124,35 @@ export function IncidentDashboard() {
   const investigating = incidents.filter(i => i.status === "調査中").length
 
   const uniqueAssignees = Array.from(new Set(incidents.map(i => i.assignee)))
+
+  const handleIncidentClick = (incident: Incident) => {
+    setSelectedIncident(incident)
+    setIsModalOpen(true)
+  }
+
+  const handleStatusUpdate = (newStatus: string) => {
+    if (selectedIncident) {
+      const updatedIncidents = incidents.map(inc => 
+        inc.id === selectedIncident.id ? { ...inc, status: newStatus } : inc
+      )
+      // ここで更新されたインシデントリストを状態や API に保存する処理を追加
+      setSelectedIncident({ ...selectedIncident, status: newStatus })
+    }
+  }
+
+  const handleResponseSubmit = () => {
+    if (newResponse && responderName) {
+      const newIncidentResponse: IncidentResponse = {
+        id: incidentResponses.length + 1,
+        date: format(new Date(), "yyyy-MM-dd HH:mm"),
+        content: newResponse,
+        responder: responderName,
+      }
+      setIncidentResponses([...incidentResponses, newIncidentResponse])
+      setNewResponse("")
+      setResponderName("")
+    }
+  }
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -234,7 +287,7 @@ export function IncidentDashboard() {
             </TableHeader>
             <TableBody>
               {filteredIncidents.map((incident) => (
-                <TableRow key={incident.id}>
+                <TableRow key={incident.id} onClick={() => handleIncidentClick(incident)} className="cursor-pointer hover:bg-gray-100">
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {getStatusIcon(incident.status)}
@@ -280,6 +333,83 @@ export function IncidentDashboard() {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>インシデント詳細</DialogTitle>
+            <DialogDescription>
+              ID: {selectedIncident?.id} - {selectedIncident?.content}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid  gap-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <h3 className="font-semibold">ステータス</h3>
+                <p>{selectedIncident?.status}</p>
+              </div>
+              <div>
+                <h3 className="font-semibold">判定</h3>
+                <p>{selectedIncident?.judgment}</p>
+              </div>
+              <div>
+                <h3 className="font-semibold">担当者</h3>
+                <p>{selectedIncident?.assignee}</p>
+              </div>
+              <div>
+                <h3 className="font-semibold">優先度</h3>
+                <p>{selectedIncident?.priority}</p>
+              </div>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">ステータス更新</h3>
+              <div className="flex gap-2">
+                <Button onClick={() => handleStatusUpdate("未解決")} variant="outline">未解決</Button>
+                <Button onClick={() => handleStatusUpdate("調査中")} variant="outline">調査中</Button>
+                <Button onClick={() => handleStatusUpdate("解決済み")} variant="outline">解決済み</Button>
+                <Button onClick={() => handleStatusUpdate("クローズ")} variant="outline">クローズ</Button>
+              </div>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">対応履歴</h3>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>日付</TableHead>
+                    <TableHead>対応内容</TableHead>
+                    <TableHead>名前</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {incidentResponses.map((response) => (
+                    <TableRow key={response.id}>
+                      <TableCell>{response.date}</TableCell>
+                      <TableCell>{response.content}</TableCell>
+                      <TableCell>{response.responder}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div>
+              <h3 className="font-semibold mb-2">新規対応記録</h3>
+              <div className="grid gap-2">
+                <Textarea
+                  placeholder="対応内容を入力してください"
+                  value={newResponse}
+                  onChange={(e) => setNewResponse(e.target.value)}
+                />
+                <Input
+                  placeholder="名前"
+                  value={responderName}
+                  onChange={(e) => setResponderName(e.target.value)}
+                />
+                <Button onClick={handleResponseSubmit}>記録を追加</Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
