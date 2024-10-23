@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { AlertCircle, CheckCircle, Clock, Search, Calendar as CalendarIcon, PlusCircle, CheckIcon, MailIcon } from "lucide-react"
+import { AlertCircle, CheckCircle, Clock, Search, Calendar as CalendarIcon, PlusCircle, CheckIcon, MailIcon, ChevronUp, ChevronDown } from "lucide-react"
 import { format, isWithinInterval, endOfDay } from "date-fns"
 import { ja } from "date-fns/locale"
 import { DateRange } from "react-day-picker"
@@ -52,6 +52,14 @@ interface RelatedIncident {
 
 interface Incident extends RelatedIncident {
   relation: RelatedIncident[]
+  workflowLogs: WorkflowLog[]
+}
+
+interface WorkflowLog {
+  id: number
+  title: string
+  result: string
+  detailedLog: string
 }
 
 const incidents: Incident[] = [
@@ -93,6 +101,14 @@ const incidents: Incident[] = [
         from: "alert@system.incidenttolls.com",
         to: "support@incidenttolls.com",
         subject: "【緊急】データベース接続エラー"
+      }
+    ],
+    workflowLogs: [
+      {
+        id: 1,
+        title: "接続性チェック",
+        result: "対象ホストが作業中のため静観",
+        detailedLog: "ホストA (192.168.1.100): 応答なし\nホストB (192.168.1.101): 応答あり\nホストC (192.168.1.102): 応答なし\n\n結論: 一部のホストが応答していないため、作業中の可能性があります。現時点では静観し、30分後に再度チェックを行います。"
       }
     ]
   },
@@ -201,6 +217,17 @@ function DataTableFacetedFilter({
   )
 }
 
+function WorkflowLog({ log }: { log: WorkflowLog }) {
+  return (
+    <div className="border-t border-gray-200">
+      <div className="p-4">
+        <h3 className="font-medium mb-2">{log.title}</h3>
+        <div className="text-sm">{log.detailedLog}</div>
+      </div>
+    </div>
+  )
+}
+
 export function IncidentDashboard() {
   const [statusFilter, setStatusFilter] = React.useState<string[]>([])
   const [judgmentFilter, setJudgmentFilter] = React.useState<string[]>([])
@@ -212,6 +239,7 @@ export function IncidentDashboard() {
   const [newResponse, setNewResponse] = React.useState("")
   const [responderName, setResponderName] = React.useState("")
   const [incidentsState, setIncidentsState] = React.useState<Incident[]>(incidents)
+  const [isWorkflowLogExpanded, setIsWorkflowLogExpanded] = React.useState(false)
 
   const resetFilters = () => {
     setStatusFilter([])
@@ -311,6 +339,7 @@ export function IncidentDashboard() {
       <Card className="col-span-2 md:col-span-2 lg:col-span-4">
         <CardHeader>
           <CardTitle>最近のインシデント</CardTitle>
+          
           <CardDescription>
             過去24時間以内に報告されたインシデント
           </CardDescription>
@@ -336,7 +365,7 @@ export function IncidentDashboard() {
                 title="判定"
                 options={[
                   { label: "要対応", value: "要対応" },
-                  {   label: "静観", value: "静観" },
+                  { label: "静観", value: "静観" },
                 ]}
                 value={judgmentFilter}
                 onChange={setJudgmentFilter}
@@ -468,73 +497,75 @@ export function IncidentDashboard() {
           <div className="grid grid-cols-2 h-full">
             <div className="p-6 bg-gray-100 flex flex-col overflow-hidden">
               <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full">
-                <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
-                  <AccordionItem value="item-0" key={selectedIncident?.id}>
-                    <AccordionTrigger className="px-4 py-2 hover:bg-gray-50">
-                      <div className="flex items-center space-x-2 text-left w-full">
-                        <MailIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                        <div className="flex-grow min-w-0">
-                          <div className="font-semibold truncate">{selectedIncident?.subject}</div>
-                          <div className="text-sm text-gray-500 flex justify-between">
-                            <span className="truncate">{selectedIncident?.from}</span>
-                            <span className="flex-shrink-0 ml-2">{selectedIncident?.datetime.split(' ')[1]}</span>
+                <div className="flex-grow overflow-y-auto">
+                  <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
+                    <AccordionItem value="item-0" key={selectedIncident?.id}>
+                      <AccordionTrigger className="px-4 py-2 hover:bg-gray-50">
+                        <div className="flex items-center space-x-2 text-left w-full">
+                          <MailIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                          <div className="flex-grow min-w-0">
+                            <div className="font-semibold truncate">{selectedIncident?.subject}</div>
+                            <div className="text-sm text-gray-500 flex justify-between">
+                              <span className="truncate">{selectedIncident?.from}</span>
+                              <span className="flex-shrink-0 ml-2">{selectedIncident?.datetime.split(' ')[1]}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="p-4 space-y-2">
-                        <div>
-                          <span className="font-semibold">From:</span> {selectedIncident?.from}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="p-4 space-y-2">
+                          <div>
+                            <span className="font-semibold">From:</span> {selectedIncident?.from}
+                          </div>
+                          <div>
+                            <span className="font-semibold">To:</span> {selectedIncident?.to}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Date:</span> {selectedIncident?.datetime}
+                          </div>
+                          <Separator className="my-4" />
+                          <div className="whitespace-pre-wrap">{selectedIncident?.content}</div>
                         </div>
-                        <div>
-                          <span className="font-semibold">To:</span> {selectedIncident?.to}
-                        </div>
-                        <div>
-                          <span className="font-semibold">Date:</span> {selectedIncident?.datetime}
-                        </div>
-                        <Separator className="my-4" />
-                        <div className="whitespace-pre-wrap">{selectedIncident?.content}</div>
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                  {selectedIncident?.relation && selectedIncident.relation.length > 0 && (
-                    <>
-                      <div className="px-4 py-2 font-semibold text-gray-700 bg-gray-100">関連メール</div>
-                      {selectedIncident.relation.map((relatedIncident, index) => (
-                        <AccordionItem value={`item-${index + 1}`} key={relatedIncident.id}>
-                          <AccordionTrigger className="px-4 py-2 hover:bg-gray-50">
-                            <div className="flex items-center space-x-2 text-left w-full">
-                              <MailIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
-                              <div className="flex-grow min-w-0">
-                                <div className="font-semibold truncate">{relatedIncident.subject}</div>
-                                <div className="text-sm text-gray-500 flex justify-between">
-                                  <span className="truncate">{relatedIncident.from}</span>
-                                  <span className="flex-shrink-0 ml-2">{relatedIncident.datetime.split(' ')[1]}</span>
+                      </AccordionContent>
+                    </AccordionItem>
+                    {selectedIncident?.relation && selectedIncident.relation.length > 0 && (
+                      <>
+                        <div className="px-4 py-2 font-semibold text-gray-700 bg-gray-100">関連メール</div>
+                        {selectedIncident.relation.map((relatedIncident, index) => (
+                          <AccordionItem value={`item-${index + 1}`} key={relatedIncident.id}>
+                            <AccordionTrigger className="px-4 py-2 hover:bg-gray-50">
+                              <div className="flex items-center space-x-2 text-left w-full">
+                                <MailIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                                <div className="flex-grow min-w-0">
+                                  <div className="font-semibold truncate">{relatedIncident.subject}</div>
+                                  <div className="text-sm text-gray-500 flex justify-between">
+                                    <span className="truncate">{relatedIncident.from}</span>
+                                    <span className="flex-shrink-0 ml-2">{relatedIncident.datetime.split(' ')[1]}</span>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent>
-                            <div className="p-4 space-y-2">
-                              <div>
-                                <span className="font-semibold">From:</span> {relatedIncident.from}
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="p-4 space-y-2">
+                                <div>
+                                  <span className="font-semibold">From:</span> {relatedIncident.from}
+                                </div>
+                                <div>
+                                  <span className="font-semibold">To:</span> {relatedIncident.to}
+                                </div>
+                                <div>
+                                  <span className="font-semibold">Date:</span> {relatedIncident.datetime}
+                                </div>
+                                <Separator className="my-4" />
+                                <div className="whitespace-pre-wrap">{relatedIncident.content}</div>
                               </div>
-                              <div>
-                                <span className="font-semibold">To:</span> {relatedIncident.to}
-                              </div>
-                              <div>
-                                <span className="font-semibold">Date:</span> {relatedIncident.datetime}
-                              </div>
-                              <Separator className="my-4" />
-                              <div className="whitespace-pre-wrap">{relatedIncident.content}</div>
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </>
-                  )}
-                </Accordion>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </>
+                    )}
+                  </Accordion>
+                </div>
               </div>
             </div>
             <div className="p-6 overflow-y-auto h-full">
@@ -604,6 +635,26 @@ export function IncidentDashboard() {
                 </div>
               </div>
             </div>
+          </div>
+          <div className={`fixed left-0 bottom-0 w-1/2 bg-white shadow-lg transition-all duration-300 ease-in-out ${isWorkflowLogExpanded ? 'h-full' : 'h-16'}`}>
+            <button
+              className="w-full h-16 flex items-center justify-between px-4 text-left font-semibold bg-green-100 hover:bg-green-200 focus:outline-none bg-stripes"
+              style={{
+                backgroundImage: 'linear-gradient(45deg, rgba(0, 255, 0, 0.1) 25%, transparent 25%, transparent 50%, rgba(0, 255, 0, 0.1) 50%, rgba(0, 255, 0, 0.1) 75%, transparent 75%, transparent)',
+                backgroundSize: '40px 40px'
+              }}
+              onClick={() => setIsWorkflowLogExpanded(!isWorkflowLogExpanded)}
+            >
+              <span className="text-lg font-bold">判別結果：{selectedIncident?.workflowLogs[0]?.result}</span>
+              {isWorkflowLogExpanded ? <ChevronDown className="h-6 w-6" /> : <ChevronUp className="h-6 w-6" />}
+            </button>
+            {isWorkflowLogExpanded && (
+              <div className="p-4 overflow-y-auto h-[calc(100%-4rem)]">
+                {selectedIncident?.workflowLogs.map((log) => (
+                  <WorkflowLog key={log.id} log={log} />
+                ))}
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
