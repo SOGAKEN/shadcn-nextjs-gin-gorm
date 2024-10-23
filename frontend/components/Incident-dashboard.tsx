@@ -1,22 +1,32 @@
 "use client"
 
 import * as React from "react"
-import { AlertCircle, CheckCircle, Clock, XCircle, Search, Calendar as CalendarIcon } from "lucide-react"
-import { format, isWithinInterval } from "date-fns"
+import { AlertCircle, CheckCircle, Clock, Search, Calendar as CalendarIcon, Plus, CheckIcon } from "lucide-react"
+import { format, isWithinInterval, endOfDay } from "date-fns"
 import { ja } from "date-fns/locale"
 import { DateRange } from "react-day-picker"
 
+import { cn } from "@/lib/utils"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from "@/components/ui/command"
 
 interface IncidentResponse {
   id: number
@@ -28,11 +38,11 @@ interface IncidentResponse {
 interface Incident {
   id: number
   datetime: string
-  status: string
-  judgment: string
+  status: "未着手" | "調査中" | "解決済み"
+  judgment: "要対応" | "静観"
   content: string
   assignee: string
-  priority: string
+  priority: "高" | "中" | "低"
   responses: IncidentResponse[]
 }
 
@@ -40,10 +50,10 @@ const incidents: Incident[] = [
   {
     id: 1,
     datetime: "2023-05-15 14:30",
-    status: "未解決",
+    status: "未着手",
     judgment: "要対応",
     content: "データベース接続エラー",
-    assignee: "山田太郎",
+    assignee: "",
     priority: "高",
     responses: [],
   },
@@ -53,7 +63,7 @@ const incidents: Incident[] = [
     status: "調査中",
     judgment: "要対応",
     content: "アプリケーションの応答遅延",
-    assignee: "佐藤花子",
+    assignee: "",
     priority: "中",
     responses: [],
   },
@@ -63,17 +73,17 @@ const incidents: Incident[] = [
     status: "解決済み",
     judgment: "静観",
     content: "ユーザー認証の問題",
-    assignee: "鈴木一郎",
+    assignee: "",
     priority: "低",
     responses: [],
   },
   {
     id: 4,
     datetime: "2023-05-14 18:00",
-    status: "クローズ",
+    status: "未着手",
     judgment: "静観",
     content: "バックアップ失敗",
-    assignee: "高橋次郎",
+    assignee: "",
     priority: "中",
     responses: [],
   },
@@ -81,23 +91,110 @@ const incidents: Incident[] = [
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case "未解決":
+    case "未着手":
       return <AlertCircle className="h-5 w-5 text-red-500" />
     case "調査中":
       return <Clock className="h-5 w-5 text-yellow-500" />
     case "解決済み":
       return <CheckCircle className="h-5 w-5 text-green-500" />
-    case "クローズ":
-      return <XCircle className="h-5 w-5 text-gray-500" />
     default:
       return null
   }
 }
 
+interface DataTableFacetedFilterProps {
+  title: string
+  options: {
+    label: string
+    value: string
+  }[]
+  value: string[]
+  onChange: (value: string[]) => void
+}
+
+function DataTableFacetedFilter({
+  title,
+  options,
+  value,
+  onChange,
+}: DataTableFacetedFilterProps) {
+  const selectedValues = new Set(value)
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="w-full h-10 justify-between" size="sm">
+          <span className="text-left font-normal">{title}</span>
+          {selectedValues.size > 0 && (
+            <Badge
+              variant="secondary"
+              className="rounded-sm px-1 font-normal ml-auto"
+            >
+              {selectedValues.size}
+            </Badge>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder={title} />
+          <CommandList>
+            <CommandEmpty>結果が見つかりません。</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => {
+                const isSelected = selectedValues.has(option.value)
+                return (
+                  <CommandItem
+                    key={option.value}
+                    onSelect={() => {
+                      if (isSelected) {
+                        selectedValues.delete(option.value)
+                      } else {
+                        selectedValues.add(option.value)
+                      }
+                      const filterValues = Array.from(selectedValues)
+                      onChange(filterValues)
+                    }}
+                  >
+                    <div
+                      className={cn(
+                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        isSelected
+                          ? "bg-primary text-primary-foreground"
+                          : "opacity-50 [&_svg]:invisible"
+                      )}
+                    >
+                      <CheckIcon className={cn("h-4 w-4")} />
+                    </div>
+                    <span>{option.label}</span>
+                  </CommandItem>
+                )
+              })}
+            </CommandGroup>
+            {selectedValues.size > 0 && (
+              <>
+                <CommandSeparator />
+                <CommandGroup>
+                  <CommandItem
+                    onSelect={() => onChange([])}
+                    className="justify-center text-center"
+                  >
+                    フィルターをクリア
+                  </CommandItem>
+                </CommandGroup>
+              </>
+            )}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
 export function IncidentDashboard() {
-  const [statusFilter, setStatusFilter] = React.useState("全て")
-  const [judgmentFilter, setJudgmentFilter] = React.useState("全て")
-  const [assigneeFilter, setAssigneeFilter] = React.useState("全て")
+  const [statusFilter, setStatusFilter] = React.useState<string[]>([])
+  const [judgmentFilter, setJudgmentFilter] = React.useState<string[]>([])
+  const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([])
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [selectedIncident, setSelectedIncident] = React.useState<Incident | null>(null)
@@ -107,42 +204,54 @@ export function IncidentDashboard() {
   const [incidentsState, setIncidentsState] = React.useState<Incident[]>(incidents)
 
   const resetFilters = () => {
-    setStatusFilter("全て")
-    setJudgmentFilter("全て")
-    setAssigneeFilter("全て")
+    setStatusFilter([])
+    setJudgmentFilter([])
+    setAssigneeFilter([])
     setDateRange(undefined)
     setSearchQuery("")
   }
 
   const filteredIncidents = incidentsState.filter((incident) => {
-    const matchesStatus = statusFilter === "全て" || incident.status === statusFilter
-    const matchesJudgment = judgmentFilter === "全て" || incident.judgment === judgmentFilter
-    const matchesAssignee = assigneeFilter === "全て" || incident.assignee === assigneeFilter
+    const matchesStatus = statusFilter.length === 0 || statusFilter.includes(incident.status)
+    const matchesJudgment = judgmentFilter.length === 0 || judgmentFilter.includes(incident.judgment)
+    const matchesAssignee = assigneeFilter.length === 0 || assigneeFilter.includes(incident.assignee)
     const matchesDate =
       !dateRange?.from ||
       !dateRange?.to ||
-      isWithinInterval(new Date(incident.datetime), { start: dateRange.from, end: dateRange.to })
+      isWithinInterval(new Date(incident.datetime), { 
+        start: dateRange.from, 
+        end: endOfDay(dateRange.to) 
+      })
     const matchesSearch = incident.content.toLowerCase().includes(searchQuery.toLowerCase())
     return matchesStatus && matchesJudgment && matchesAssignee && matchesDate && matchesSearch
   })
 
-  const unresolved = incidentsState.filter(i => i.status === "未解決").length
+  const unresolved = incidentsState.filter(i => i.status === "未着手").length
   const investigating = incidentsState.filter(i => i.status === "調査中").length
-
-  const uniqueAssignees = Array.from(new Set(incidentsState.map(i => i.assignee)))
 
   const handleIncidentClick = (incident: Incident) => {
     setSelectedIncident(incident)
     setIsModalOpen(true)
   }
 
-  const handleStatusUpdate = (newStatus: string) => {
+  const handleStatusUpdate = () => {
     if (selectedIncident) {
+      const newResponse: IncidentResponse = {
+        id: selectedIncident.responses.length + 1,
+        date: format(new Date(), "yyyy-MM-dd HH:mm"),
+        content: "インシデントが解決されました。",
+        responder: responderName,
+      }
+      const updatedIncident = {
+        ...selectedIncident,
+        status: "解決済み" as const,
+        responses: [...selectedIncident.responses, newResponse],
+      }
       const updatedIncidents = incidentsState.map(inc => 
-        inc.id === selectedIncident.id ? { ...inc, status: newStatus } : inc
+        inc.id === selectedIncident.id ? updatedIncident : inc
       )
       setIncidentsState(updatedIncidents)
-      setSelectedIncident({ ...selectedIncident, status: newStatus })
+      setSelectedIncident(updatedIncident)
     }
   }
 
@@ -154,15 +263,18 @@ export function IncidentDashboard() {
         content: newResponse,
         responder: responderName,
       }
+      const updatedIncident = {
+        ...selectedIncident,
+        status: "調査中" as const,
+        assignee: responderName,
+        responses: [...selectedIncident.responses, newIncidentResponse],
+      }
       const updatedIncidents = incidentsState.map(inc => 
-        inc.id === selectedIncident.id
-          ? { ...inc, responses: [...inc.responses, newIncidentResponse] }
-          : inc
+        inc.id === selectedIncident.id ? updatedIncident : inc
       )
       setIncidentsState(updatedIncidents)
-      setSelectedIncident({ ...selectedIncident, responses: [...selectedIncident.responses, newIncidentResponse] })
+      setSelectedIncident(updatedIncident)
       setNewResponse("")
-      setResponderName("")
     }
   }
 
@@ -170,7 +282,7 @@ export function IncidentDashboard() {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <Card className="col-span-1 md:col-span-1">
         <CardHeader>
-          <CardTitle>未解決インシデント</CardTitle>
+          <CardTitle>未着手インシデント</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-4xl font-bold">{unresolved}</div>
@@ -194,54 +306,47 @@ export function IncidentDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4 mb-4 items-start">
-            <div className="flex-1 min-w-[200px] h-10">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="ステータスでフィルター" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="全て">全てのステータス</SelectItem>
-                  <SelectItem value="未解決">未解決</SelectItem>
-                  <SelectItem value="調査中">調査中</SelectItem>
-                  <SelectItem value="解決済み">解決済み</SelectItem>
-                  <SelectItem value="クローズ">クローズ</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+            <div className="w-full h-10">
+              <DataTableFacetedFilter
+                title="ステータス"
+                options={[
+                  { label: "未着手", value: "未着手" },
+                  { label: "調査中", value: "調査中" },
+                  { label: "解決済み", value: "解決済み" },
+                ]}
+                value={statusFilter}
+                onChange={setStatusFilter}
+              />
             </div>
-            <div className="flex-1 min-w-[200px] h-10">
-              <Select value={judgmentFilter} onValueChange={setJudgmentFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="判定でフィルター" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="全て">全ての判定</SelectItem>
-                  <SelectItem value="要対応">要対応</SelectItem>
-                  <SelectItem value="静観">静観</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="w-full h-10">
+              <DataTableFacetedFilter
+                title="判定"
+                options={[
+                  { label: "要対応", value: "要対応" },
+                  { label: "静観", value: "静観" },
+                ]}
+                value={judgmentFilter}
+                onChange={setJudgmentFilter}
+              />
             </div>
-            <div className="flex-1 min-w-[200px] h-10">
-              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="担当者でフィルター" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="全て">全ての担当者</SelectItem>
-                  {uniqueAssignees.map((assignee) => (
-                    <SelectItem key={assignee} value={assignee}>
-                      {assignee}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="w-full h-10">
+              <DataTableFacetedFilter
+                title="担当者"
+                options={Array.from(new Set(incidentsState.map(i => i.assignee).filter(Boolean))).map(assignee => ({
+                  label: assignee,
+                  value: assignee,
+                }))}
+                value={assigneeFilter}
+                onChange={setAssigneeFilter}
+              />
             </div>
-            <div className="flex-1 min-w-[200px] h-10">
+            <div className="w-full h-10">
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant={"outline"}
-                    className={`w-full justify-start text-left font-normal h-10 ${
+                    className={`w-full h-10 justify-start text-left font-normal ${
                       !dateRange?.from && !dateRange?.to && "text-muted-foreground"
                     }`}
                   >
@@ -272,17 +377,19 @@ export function IncidentDashboard() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="flex-1 min-w-[200px] h-10 relative">
-              <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="インシデントを検索"
-                className="pl-8 h-10"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
+            <div className="w-full h-10 relative">
+              <div className="relative w-full h-10">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="インシデントを検索"
+                  className="w-full  h-10 pl-9"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
             </div>
           </div>
-          <div className="flex justify-end mb-4">
+          <div className="mt-4 flex justify-end">
             <Button onClick={resetFilters} variant="outline">
               フィルター解除
             </Button>
@@ -307,18 +414,11 @@ export function IncidentDashboard() {
                       {getStatusIcon(incident.status)}
                       <Badge
                         variant={
-                          incident.status === "未解決"
+                          incident.status === "未着手"
                             ? "destructive"
                             : incident.status === "調査中"
                             ? "outline"
-                            : incident.status === "クローズ"
-                            ? "default"
                             : "secondary"
-                        }
-                        className={
-                          incident.status === "解決済み"
-                            ? "bg-white text-green-500 border border-green-500"
-                            : ""
                         }
                       >
                         {incident.status}
@@ -338,10 +438,9 @@ export function IncidentDashboard() {
                     <div className="font-medium">{incident.content}</div>
                     <div className="text-sm text-muted-foreground">
                       優先度: {incident.priority}
-                
                     </div>
                   </TableCell>
-                  <TableCell>{incident.assignee}</TableCell>
+                  <TableCell>{incident.assignee || "-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -372,7 +471,7 @@ export function IncidentDashboard() {
                   </div>
                   <div>
                     <h4 className="font-semibold">担当者</h4>
-                    <p>{selectedIncident?.assignee}</p>
+                    <p>{selectedIncident?.assignee || "-"}</p>
                   </div>
                   <div>
                     <h4 className="font-semibold">優先度</h4>
@@ -383,15 +482,12 @@ export function IncidentDashboard() {
                     <p>{selectedIncident?.datetime}</p>
                   </div>
                 </div>
-                <div>
-                  <h4 className="font-semibold mb-2">ステータス更新</h4>
-                  <div className="flex gap-2 flex-wrap">
-                    <Button onClick={() => handleStatusUpdate("未解決")} variant="outline">未解決</Button>
-                    <Button onClick={() => handleStatusUpdate("調査中")} variant="outline">調査中</Button>
-                    <Button onClick={() => handleStatusUpdate("解決済み")} variant="outline">解決済み</Button>
-                    <Button onClick={() => handleStatusUpdate("クローズ")} variant="outline">クローズ</Button>
+                {selectedIncident?.status !== "解決済み" && (
+                  <div>
+                    <h4 className="font-semibold mb-2">ステータス更新</h4>
+                    <Button onClick={handleStatusUpdate} variant="outline">解決済み</Button>
                   </div>
-                </div>
+                )}
                 <div>
                   <h4 className="font-semibold mb-2">対応履歴</h4>
                   <div className="max-h-[200px] overflow-y-auto">
@@ -418,15 +514,15 @@ export function IncidentDashboard() {
                 <div>
                   <h4 className="font-semibold mb-2">新規対応記録</h4>
                   <div className="grid gap-2">
-                    <Textarea
-                      placeholder="対応内容を入力してください"
-                      value={newResponse}
-                      onChange={(e) => setNewResponse(e.target.value)}
-                    />
                     <Input
                       placeholder="名前"
                       value={responderName}
                       onChange={(e) => setResponderName(e.target.value)}
+                    />
+                    <Textarea
+                      placeholder="対応内容を入力してください"
+                      value={newResponse}
+                      onChange={(e) => setNewResponse(e.target.value)}
                     />
                     <Button onClick={handleResponseSubmit}>記録を追加</Button>
                   </div>
