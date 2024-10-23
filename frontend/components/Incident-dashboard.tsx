@@ -1,24 +1,54 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { AlertCircle, CheckCircle, Clock, Search, Calendar as CalendarIcon, PlusCircle, CheckIcon, MailIcon, ChevronDown, ChevronUp } from "lucide-react"
-import { format, isWithinInterval, endOfDay } from "date-fns"
-import { ja } from "date-fns/locale"
-import { DateRange } from "react-day-picker"
+import * as React from "react";
+import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  Search,
+  Calendar as CalendarIcon,
+  CheckIcon,
+  MailIcon,
+} from "lucide-react";
+import { format, isWithinInterval, endOfDay } from "date-fns";
+import { ja } from "date-fns/locale";
+import { DateRange } from "react-day-picker";
 
-import { cn } from "@/lib/utils"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Calendar } from "@/components/ui/calendar"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Textarea } from "@/components/ui/textarea"
-import { Separator } from "@/components/ui/separator"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { cn } from "@/lib/utils";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Calendar } from "@/components/ui/calendar";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   Command,
   CommandEmpty,
@@ -27,27 +57,31 @@ import {
   CommandItem,
   CommandList,
   CommandSeparator,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 
 interface IncidentResponse {
-  id: number
-  date: string
-  content: string
-  responder: string
+  id: number;
+  date: string;
+  content: string;
+  responder: string;
 }
 
-interface Incident {
-  id: number
-  datetime: string
-  status: "未着手" | "調査中" | "解決済み"
-  judgment: "要対応" | "静観"
-  content: string
-  assignee: string
-  priority: "高" | "中" | "低"
-  responses: IncidentResponse[]
-  from: string
-  to: string
-  subject: string
+interface RelatedIncident {
+  id: number;
+  datetime: string;
+  status: string;
+  judgment: string;
+  content: string;
+  assignee: string;
+  priority: string;
+  responses: IncidentResponse[];
+  from: string;
+  to: string;
+  subject: string;
+}
+
+interface Incident extends RelatedIncident {
+  relation: RelatedIncident[];
 }
 
 const incidents: Incident[] = [
@@ -56,76 +90,316 @@ const incidents: Incident[] = [
     datetime: "2023-05-15 14:30",
     status: "未着手",
     judgment: "要対応",
-    content: "データベースサーバーへの接続が突然失われました。アプリケーションがデータを取得・保存できない状態です。ユーザーからの報告が複数入っています。\n\n緊急対応が必要です。データベース管理者に連絡を取り、サーバーの状態を確認してください。また、一時的な代替策としてキャッシュの使用を検討してください。",
+    content:
+      "データベースサーバーへの接続が突然失われました。アプリケーションがデータを取得・保存できない状態です。緊急対応が必要です。",
     assignee: "山田太郎",
     priority: "高",
     responses: [],
-    from: "alert@system.incidenttolls.com",
-    to: "support@incidenttolls.com",
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
     subject: "【緊急】データベース接続エラー",
+    relation: [
+      {
+        id: 20,
+        datetime: "2023-05-15 14:45",
+        status: "対応中",
+        judgment: "要対応",
+        content:
+          "データベースサーバーの監視ツールに異常が検出され、接続が不安定になっています。",
+        assignee: "佐藤花子",
+        priority: "高",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【連携】データベース監視異常",
+      },
+    ],
   },
   {
     id: 2,
-    datetime: "2023-05-15 11:45",
-    status: "調査中",
+    datetime: "2023-05-16 09:45",
+    status: "未着手",
     judgment: "要対応",
-    content: "ユーザーから、アプリケーションの応答が通常より遅いという報告が増えています。特に検索機能と注文処理で顕著な遅延が見られます。\n\nサーバーのリソース使用率を確認し、必要に応じてスケールアップを検討してください。また、データベースのクエリ最適化も並行して進めてください。",
+    content:
+      "メールサーバーが停止しています。ユーザーへの通知が送信できていません。",
     assignee: "佐藤花子",
     priority: "中",
     responses: [],
-    from: "monitoring@system.incidenttolls.com",
-    to: "support@incidenttolls.com",
-    subject: "アプリケーションのパフォーマンス低下",
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
+    subject: "【注意】メールサーバー停止",
+    relation: [
+      {
+        id: 21,
+        datetime: "2023-05-16 10:00",
+        status: "対応中",
+        judgment: "要確認",
+        content:
+          "ネットワークの障害によりメールサーバーの停止が発生しています。",
+        assignee: "鈴木一郎",
+        priority: "中",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【関連】ネットワーク障害",
+      },
+    ],
   },
   {
     id: 3,
-    datetime: "2023-05-14 23:15",
-    status: "解決済み",
-    judgment: "静観",
-    content: "一部のユーザーがログインできない問題が報告されました。調査の結果、認証サーバーの一時的な過負荷が原因でした。\n\nサーバーの再起動により問題は解決しましたが、今後の対策として負荷分散の改善を検討してください。",
+    datetime: "2023-05-17 13:20",
+    status: "未着手",
+    judgment: "要対応",
+    content:
+      "ウェブサーバーの高負荷が発生していましたが、リソース増強により解消されました。",
     assignee: "鈴木一郎",
     priority: "低",
     responses: [],
-    from: "security@system.incidenttolls.com",
-    to: "support@incidenttolls.com",
-    subject: "ユーザー認証の問題",
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
+    subject: "【解決済み】ウェブサーバー高負荷",
+    relation: [
+      {
+        id: 22,
+        datetime: "2023-05-17 13:00",
+        status: "対応中",
+        judgment: "要対応",
+        content:
+          "負荷分散機能に問題があり、ウェブサーバーのリソースが逼迫しています。",
+        assignee: "山田太郎",
+        priority: "高",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【連携】負荷分散機能異常",
+      },
+    ],
   },
   {
     id: 4,
-    datetime: "2023-05-14 18:00",
+    datetime: "2023-05-18 11:10",
     status: "未着手",
-    judgment: "静観",
-    content: "定期バックアップジョブが失敗しました。エラーログを確認したところ、ストレージの容量不足が原因と思われます。\n\nバックアップサーバーのディスク使用量を確認し、不要なデータの削除または追加のストレージの確保を行ってください。また、バックアップ戦略の見直しも検討してください。",
-    assignee: "高橋次郎",
+    judgment: "要対応",
+    content:
+      "ネットワーク接続が頻繁に切断されており、複数の拠点で報告されています。",
+    assignee: "田中宏",
+    priority: "高",
+    responses: [],
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
+    subject: "【緊急】ネットワーク接続障害",
+    relation: [
+      {
+        id: 23,
+        datetime: "2023-05-18 11:30",
+        status: "対応中",
+        judgment: "要確認",
+        content: "一部拠点でルーター障害が確認されています。",
+        assignee: "鈴木一郎",
+        priority: "中",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【関連】ルーター障害",
+      },
+    ],
+  },
+  {
+    id: 5,
+    datetime: "2023-05-19 15:40",
+    status: "未着手",
+    judgment: "要対応",
+    content: "アプリケーションの一部機能が利用できないとの報告が複数あります。",
+    assignee: "山田太郎",
     priority: "中",
     responses: [],
-    from: "backup@system.incidenttolls.com",
-    to: "support@incidenttolls.com",
-    subject: "バックアップ失敗のお知らせ",
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
+    subject: "【注意】アプリケーション機能不全",
+    relation: [
+      {
+        id: 24,
+        datetime: "2023-05-19 15:45",
+        status: "対応中",
+        judgment: "要確認",
+        content: "データベースクエリの遅延が一部機能に影響を与えています。",
+        assignee: "佐藤花子",
+        priority: "中",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【関連】データベースクエリ遅延",
+      },
+    ],
   },
-]
+  {
+    id: 6,
+    datetime: "2023-05-20 08:55",
+    status: "未着手",
+    judgment: "要対応",
+    content: "バックアップシステムの不具合が発生しましたが、復旧完了しました。",
+    assignee: "佐藤花子",
+    priority: "低",
+    responses: [],
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
+    subject: "【解決済み】バックアップシステム不具合",
+    relation: [
+      {
+        id: 25,
+        datetime: "2023-05-20 09:00",
+        status: "対応中",
+        judgment: "要確認",
+        content:
+          "バックアップシステムの定期メンテナンス中にエラーが発生しました。",
+        assignee: "山田太郎",
+        priority: "低",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【関連】バックアップメンテナンスエラー",
+      },
+    ],
+  },
+  {
+    id: 7,
+    datetime: "2023-05-21 17:30",
+    status: "未着手",
+    judgment: "要対応",
+    content: "ファイルサーバーの容量が限界に達しています。至急対応が必要です。",
+    assignee: "田中宏",
+    priority: "高",
+    responses: [],
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
+    subject: "【緊急】ファイルサーバー容量不足",
+    relation: [
+      {
+        id: 26,
+        datetime: "2023-05-21 17:35",
+        status: "対応中",
+        judgment: "要確認",
+        content:
+          "ファイルサーバーの容量不足の影響で一部のアプリケーションが動作停止しています。",
+        assignee: "佐藤花子",
+        priority: "高",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【関連】アプリケーション停止",
+      },
+    ],
+  },
+  {
+    id: 8,
+    datetime: "2023-05-22 12:15",
+    status: "未着手",
+    judgment: "要対応",
+    content: "複数のユーザーからログインできないとの報告が寄せられています。",
+    assignee: "鈴木一郎",
+    priority: "中",
+    responses: [],
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
+    subject: "【注意】ログイン障害",
+    relation: [
+      {
+        id: 27,
+        datetime: "2023-05-22 12:30",
+        status: "対応中",
+        judgment: "要対応",
+        content: "認証サーバーの一部で問題が発生しています。",
+        assignee: "山田太郎",
+        priority: "中",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【関連】認証サーバー障害",
+      },
+    ],
+  },
+  {
+    id: 9,
+    datetime: "2023-05-23 14:00",
+    status: "未着手",
+    judgment: "要対応",
+    content:
+      "DNSサーバーの設定ミスが原因で一部のドメインが解決できない状態でしたが、修正完了しました。",
+    assignee: "山田太郎",
+    priority: "低",
+    responses: [],
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
+    subject: "【解決済み】DNS設定ミス",
+    relation: [
+      {
+        id: 28,
+        datetime: "2023-05-23 14:10",
+        status: "対応中",
+        judgment: "要対応",
+        content: "他のシステムでも同様のDNS設定ミスが確認されています。",
+        assignee: "佐藤花子",
+        priority: "低",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【関連】DNS設定ミス（他システム）",
+      },
+    ],
+  },
+  {
+    id: 10,
+    datetime: "2023-05-24 09:50",
+    status: "未着手",
+    judgment: "要対応",
+    content:
+      "APIサーバーからの応答が遅延しており、アプリケーションが正常に動作していません。",
+    assignee: "佐藤花子",
+    priority: "高",
+    responses: [],
+    from: "alert@system.incidenttools.com",
+    to: "support@incidenttools.com",
+    subject: "【緊急】API応答遅延",
+    relation: [
+      {
+        id: 29,
+        datetime: "2023-05-24 10:00",
+        status: "対応中",
+        judgment: "要確認",
+        content:
+          "ネットワーク遅延がAPIサーバーのパフォーマンスに影響を与えています。",
+        assignee: "鈴木一郎",
+        priority: "高",
+        responses: [],
+        from: "alert@system.incidenttools.com",
+        to: "support@incidenttools.com",
+        subject: "【関連】ネットワーク遅延",
+      },
+    ],
+  },
+];
 
 const getStatusIcon = (status: string) => {
   switch (status) {
     case "未着手":
-      return <AlertCircle className="h-5 w-5 text-red-500" />
+      return <AlertCircle className="h-5 w-5 text-red-500" />;
     case "調査中":
-      return <Clock className="h-5 w-5 text-yellow-500" />
+      return <Clock className="h-5 w-5 text-yellow-500" />;
     case "解決済み":
-      return <CheckCircle className="h-5 w-5 text-green-500" />
+      return <CheckCircle className="h-5 w-5 text-green-500" />;
     default:
-      return null
+      return null;
   }
-}
+};
 
 interface DataTableFacetedFilterProps {
-  title: string
+  title: string;
   options: {
-    label: string
-    value: string
-  }[]
-  value: string[]
-  onChange: (value: string[]) => void
+    label: string;
+    value: string;
+  }[];
+  value: string[];
+  onChange: (value: string[]) => void;
 }
 
 function DataTableFacetedFilter({
@@ -134,7 +408,7 @@ function DataTableFacetedFilter({
   value,
   onChange,
 }: DataTableFacetedFilterProps) {
-  const selectedValues = new Set(value)
+  const selectedValues = new Set(value);
 
   return (
     <Popover>
@@ -158,18 +432,18 @@ function DataTableFacetedFilter({
             <CommandEmpty>結果が見つかりません。</CommandEmpty>
             <CommandGroup>
               {options.map((option) => {
-                const isSelected = selectedValues.has(option.value)
+                const isSelected = selectedValues.has(option.value);
                 return (
                   <CommandItem
                     key={option.value}
                     onSelect={() => {
                       if (isSelected) {
-                        selectedValues.delete(option.value)
+                        selectedValues.delete(option.value);
                       } else {
-                        selectedValues.add(option.value)
+                        selectedValues.add(option.value);
                       }
-                      const filterValues = Array.from(selectedValues)
-                      onChange(filterValues)
+                      const filterValues = Array.from(selectedValues);
+                      onChange(filterValues);
                     }}
                   >
                     <div
@@ -177,14 +451,14 @@ function DataTableFacetedFilter({
                         "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
                         isSelected
                           ? "bg-primary text-primary-foreground"
-                          : "opacity-50 [&_svg]:invisible"
+                          : "opacity-50 [&_svg]:invisible",
                       )}
                     >
                       <CheckIcon className={cn("h-4 w-4")} />
                     </div>
                     <span>{option.label}</span>
                   </CommandItem>
-                )
+                );
               })}
             </CommandGroup>
             {selectedValues.size > 0 && (
@@ -204,51 +478,68 @@ function DataTableFacetedFilter({
         </Command>
       </PopoverContent>
     </Popover>
-  )
+  );
 }
 
 export function IncidentDashboard() {
-  const [statusFilter, setStatusFilter] = React.useState<string[]>([])
-  const [judgmentFilter, setJudgmentFilter] = React.useState<string[]>([])
-  const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([])
-  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(undefined)
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [selectedIncident, setSelectedIncident] = React.useState<Incident | null>(null)
-  const [isModalOpen, setIsModalOpen] = React.useState(false)
-  const [newResponse, setNewResponse] = React.useState("")
-  const [responderName, setResponderName] = React.useState("")
-  const [incidentsState, setIncidentsState] = React.useState<Incident[]>(incidents)
+  const [statusFilter, setStatusFilter] = React.useState<string[]>([]);
+  const [judgmentFilter, setJudgmentFilter] = React.useState<string[]>([]);
+  const [assigneeFilter, setAssigneeFilter] = React.useState<string[]>([]);
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
+    undefined,
+  );
+  const [searchQuery, setSearchQuery] = React.useState("");
+  const [selectedIncident, setSelectedIncident] =
+    React.useState<Incident | null>(null);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
+  const [newResponse, setNewResponse] = React.useState("");
+  const [responderName, setResponderName] = React.useState("");
+  const [incidentsState, setIncidentsState] =
+    React.useState<Incident[]>(incidents);
 
   const resetFilters = () => {
-    setStatusFilter([])
-    setJudgmentFilter([])
-    setAssigneeFilter([])
-    setDateRange(undefined)
-    setSearchQuery("")
-  }
+    setStatusFilter([]);
+    setJudgmentFilter([]);
+    setAssigneeFilter([]);
+    setDateRange(undefined);
+    setSearchQuery("");
+  };
 
   const filteredIncidents = incidentsState.filter((incident) => {
-    const matchesStatus = statusFilter.length === 0 || statusFilter.includes(incident.status)
-    const matchesJudgment = judgmentFilter.length === 0 || judgmentFilter.includes(incident.judgment)
-    const matchesAssignee = assigneeFilter.length === 0 || assigneeFilter.includes(incident.assignee)
+    const matchesStatus =
+      statusFilter.length === 0 || statusFilter.includes(incident.status);
+    const matchesJudgment =
+      judgmentFilter.length === 0 || judgmentFilter.includes(incident.judgment);
+    const matchesAssignee =
+      assigneeFilter.length === 0 || assigneeFilter.includes(incident.assignee);
     const matchesDate =
       !dateRange?.from ||
       !dateRange?.to ||
-      isWithinInterval(new Date(incident.datetime), { 
-        start: dateRange.from, 
-        end: endOfDay(dateRange.to) 
-      })
-    const matchesSearch = incident.content.toLowerCase().includes(searchQuery.toLowerCase())
-    return matchesStatus && matchesJudgment && matchesAssignee && matchesDate && matchesSearch
-  })
+      isWithinInterval(new Date(incident.datetime), {
+        start: dateRange.from,
+        end: endOfDay(dateRange.to),
+      });
+    const matchesSearch = incident.content
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
+    return (
+      matchesStatus &&
+      matchesJudgment &&
+      matchesAssignee &&
+      matchesDate &&
+      matchesSearch
+    );
+  });
 
-  const unresolved = incidentsState.filter(i => i.status === "未着手").length
-  const investigating = incidentsState.filter(i => i.status === "調査中").length
+  const unresolved = incidentsState.filter((i) => i.status === "未着手").length;
+  const investigating = incidentsState.filter(
+    (i) => i.status === "調査中",
+  ).length;
 
   const handleIncidentClick = (incident: Incident) => {
-    setSelectedIncident(incident)
-    setIsModalOpen(true)
-  }
+    setSelectedIncident(incident);
+    setIsModalOpen(true);
+  };
 
   const handleStatusUpdate = () => {
     if (selectedIncident) {
@@ -257,19 +548,19 @@ export function IncidentDashboard() {
         date: format(new Date(), "yyyy-MM-dd HH:mm"),
         content: "インシデントが解決されました。",
         responder: responderName,
-      }
+      };
       const updatedIncident = {
         ...selectedIncident,
         status: "解決済み" as const,
         responses: [...selectedIncident.responses, newResponse],
-      }
-      const updatedIncidents = incidentsState.map(inc => 
-        inc.id === selectedIncident.id ? updatedIncident : inc
-      )
-      setIncidentsState(updatedIncidents)
-      setSelectedIncident(updatedIncident)
+      };
+      const updatedIncidents = incidentsState.map((inc) =>
+        inc.id === selectedIncident.id ? updatedIncident : inc,
+      );
+      setIncidentsState(updatedIncidents);
+      setSelectedIncident(updatedIncident);
     }
-  }
+  };
 
   const handleResponseSubmit = () => {
     if (selectedIncident && newResponse && responderName) {
@@ -278,21 +569,21 @@ export function IncidentDashboard() {
         date: format(new Date(), "yyyy-MM-dd HH:mm"),
         content: newResponse,
         responder: responderName,
-      }
+      };
       const updatedIncident = {
         ...selectedIncident,
         status: "調査中" as const,
         assignee: responderName,
         responses: [...selectedIncident.responses, newIncidentResponse],
-      }
-      const updatedIncidents = incidentsState.map(inc => 
-        inc.id === selectedIncident.id ? updatedIncident : inc
-      )
-      setIncidentsState(updatedIncidents)
-      setSelectedIncident(updatedIncident)
-      setNewResponse("")
+      };
+      const updatedIncidents = incidentsState.map((inc) =>
+        inc.id === selectedIncident.id ? updatedIncident : inc,
+      );
+      setIncidentsState(updatedIncidents);
+      setSelectedIncident(updatedIncident);
+      setNewResponse("");
     }
-  }
+  };
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -337,7 +628,6 @@ export function IncidentDashboard() {
               />
             </div>
             <div className="space-y-2">
-              
               <Label>判定</Label>
               <DataTableFacetedFilter
                 title="判定"
@@ -353,7 +643,9 @@ export function IncidentDashboard() {
               <Label>担当者</Label>
               <DataTableFacetedFilter
                 title="担当者"
-                options={Array.from(new Set(incidentsState.map(i => i.assignee))).map(assignee => ({
+                options={Array.from(
+                  new Set(incidentsState.map((i) => i.assignee)),
+                ).map((assignee) => ({
                   label: assignee,
                   value: assignee,
                 }))}
@@ -368,7 +660,9 @@ export function IncidentDashboard() {
                   <Button
                     variant={"outline"}
                     className={`h-10 w-full justify-start text-left font-normal ${
-                      !dateRange?.from && !dateRange?.to && "text-muted-foreground"
+                      !dateRange?.from &&
+                      !dateRange?.to &&
+                      "text-muted-foreground"
                     }`}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -429,7 +723,11 @@ export function IncidentDashboard() {
             </TableHeader>
             <TableBody>
               {filteredIncidents.map((incident) => (
-                <TableRow key={incident.id} onClick={() => handleIncidentClick(incident)} className="cursor-pointer hover:bg-gray-100">
+                <TableRow
+                  key={incident.id}
+                  onClick={() => handleIncidentClick(incident)}
+                  className="cursor-pointer hover:bg-gray-100"
+                >
                   <TableCell>{incident.id}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -439,8 +737,8 @@ export function IncidentDashboard() {
                           incident.status === "未着手"
                             ? "destructive"
                             : incident.status === "調査中"
-                            ? "outline"
-                            : "secondary"
+                              ? "outline"
+                              : "secondary"
                         }
                       >
                         {incident.status}
@@ -449,15 +747,25 @@ export function IncidentDashboard() {
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={incident.judgment === "要対応" ? "destructive" : "secondary"}
-                      className={incident.judgment === "静観" ? "bg-white text-green-500 border border-green-500" : ""}
+                      variant={
+                        incident.judgment === "要対応"
+                          ? "destructive"
+                          : "secondary"
+                      }
+                      className={
+                        incident.judgment === "静観"
+                          ? "bg-white text-green-500 border border-green-500"
+                          : ""
+                      }
                     >
                       {incident.judgment}
                     </Badge>
                   </TableCell>
                   <TableCell>{incident.datetime}</TableCell>
                   <TableCell>
-                    <div className="font-medium">{incident.content.substring(0, 50)}...</div>
+                    <div className="font-medium">
+                      {incident.content.substring(0, 50)}...
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       優先度: {incident.priority}
                     </div>
@@ -476,16 +784,23 @@ export function IncidentDashboard() {
             <div className="p-6 bg-gray-100 flex flex-col overflow-hidden">
               <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full">
                 <Accordion type="single" collapsible className="w-full">
-                  {[selectedIncident, ...incidentsState.filter(i => i.id !== selectedIncident?.id)].map((incident, index) => (
+                  {[
+                    selectedIncident,
+                    ...(selectedIncident?.relation || []),
+                  ].map((incident, index) => (
                     <AccordionItem value={`item-${index}`} key={incident?.id}>
                       <AccordionTrigger className="px-4 py-2 hover:bg-gray-50">
                         <div className="flex items-center space-x-2 text-left w-full">
                           <MailIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
                           <div className="flex-grow min-w-0">
-                            <div className="font-semibold truncate">{incident?.subject}</div>
+                            <div className="font-semibold truncate">
+                              {incident?.subject}
+                            </div>
                             <div className="text-sm text-gray-500 flex justify-between">
                               <span className="truncate">{incident?.from}</span>
-                              <span className="flex-shrink-0 ml-2">{incident?.datetime.split(' ')[1]}</span>
+                              <span className="flex-shrink-0 ml-2">
+                                {incident?.datetime.split(" ")[1]}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -493,16 +808,21 @@ export function IncidentDashboard() {
                       <AccordionContent>
                         <div className="p-4 space-y-2">
                           <div>
-                            <span className="font-semibold">From:</span> {incident?.from}
+                            <span className="font-semibold">From:</span>{" "}
+                            {incident?.from}
                           </div>
                           <div>
-                            <span className="font-semibold">To:</span> {incident?.to}
+                            <span className="font-semibold">To:</span>{" "}
+                            {incident?.to}
                           </div>
                           <div>
-                            <span className="font-semibold">Date:</span> {incident?.datetime}
+                            <span className="font-semibold">Date:</span>{" "}
+                            {incident?.datetime}
                           </div>
                           <Separator className="my-4" />
-                          <div className="whitespace-pre-wrap">{incident?.content}</div>
+                          <div className="whitespace-pre-wrap">
+                            {incident?.content}
+                          </div>
                         </div>
                       </AccordionContent>
                     </AccordionItem>
@@ -533,7 +853,9 @@ export function IncidentDashboard() {
                 {selectedIncident?.status !== "解決済み" && (
                   <div>
                     <h4 className="font-semibold mb-2">ステータス更新</h4>
-                    <Button onClick={handleStatusUpdate} variant="outline">解決済み</Button>
+                    <Button onClick={handleStatusUpdate} variant="outline">
+                      解決済み
+                    </Button>
                   </div>
                 )}
                 <div>
@@ -581,5 +903,6 @@ export function IncidentDashboard() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }
+
