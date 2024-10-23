@@ -139,41 +139,15 @@ function DataTableFacetedFilter({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-8 border-dashed">
-          <PlusCircle className="mr-2 h-4 w-4" />
-          {title}
+        <Button variant="outline" className="h-10 w-full justify-between">
+          <span className="text-left font-normal">{title}</span>
           {selectedValues.size > 0 && (
-            <>
-              <Separator orientation="vertical" className="mx-2 h-4" />
-              <Badge
-                variant="secondary"
-                className="rounded-sm px-1 font-normal lg:hidden"
-              >
-                {selectedValues.size}
-              </Badge>
-              <div className="hidden space-x-1 lg:flex">
-                {selectedValues.size > 2 ? (
-                  <Badge
-                    variant="secondary"
-                    className="rounded-sm px-1 font-normal"
-                  >
-                    {selectedValues.size} 選択済み
-                  </Badge>
-                ) : (
-                  options
-                    .filter((option) => selectedValues.has(option.value))
-                    .map((option) => (
-                      <Badge
-                        variant="secondary"
-                        key={option.value}
-                        className="rounded-sm px-1 font-normal"
-                      >
-                        {option.label}
-                      </Badge>
-                    ))
-                )}
-              </div>
-            </>
+            <Badge
+              variant="secondary"
+              className="ml-2 rounded-sm px-1 font-normal"
+            >
+              {selectedValues.size}
+            </Badge>
           )}
         </Button>
       </PopoverTrigger>
@@ -337,10 +311,10 @@ export function IncidentDashboard() {
         </CardHeader>
         <CardContent>
           <div className="text-4xl font-bold">{investigating}</div>
-          <p className="text-sm  text-muted-foreground">件</p>
+          <p className="text-sm text-muted-foreground">件</p>
         </CardContent>
       </Card>
-      <Card className="col-span-2 md:col-span-2  lg:col-span-4">
+      <Card className="col-span-2 md:col-span-2 lg:col-span-4">
         <CardHeader>
           <CardTitle>最近のインシデント</CardTitle>
           <CardDescription>
@@ -348,9 +322,9 @@ export function IncidentDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-4 mb-4 items-start">
-            <div className="flex-1 min-w-[200px]">
-              <Label className="mb-2">ステータス</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+            <div className="space-y-2">
+              <Label>ステータス</Label>
               <DataTableFacetedFilter
                 title="ステータス"
                 options={[
@@ -362,8 +336,9 @@ export function IncidentDashboard() {
                 onChange={setStatusFilter}
               />
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <Label className="mb-2">判定</Label>
+            <div className="space-y-2">
+              
+              <Label>判定</Label>
               <DataTableFacetedFilter
                 title="判定"
                 options={[
@@ -374,8 +349,8 @@ export function IncidentDashboard() {
                 onChange={setJudgmentFilter}
               />
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <Label className="mb-2">担当者</Label>
+            <div className="space-y-2">
+              <Label>担当者</Label>
               <DataTableFacetedFilter
                 title="担当者"
                 options={Array.from(new Set(incidentsState.map(i => i.assignee))).map(assignee => ({
@@ -386,13 +361,13 @@ export function IncidentDashboard() {
                 onChange={setAssigneeFilter}
               />
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <Label className="mb-2">日付範囲</Label>
+            <div className="space-y-2">
+              <Label>日付範囲</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant={"outline"}
-                    className={`w-full justify-start text-left font-normal ${
+                    className={`h-10 w-full justify-start text-left font-normal ${
                       !dateRange?.from && !dateRange?.to && "text-muted-foreground"
                     }`}
                   >
@@ -423,13 +398,13 @@ export function IncidentDashboard() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="flex-1 min-w-[200px] relative">
-              <Label className="mb-2">検索</Label>
+            <div className="space-y-2">
+              <Label>検索</Label>
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="インシデントを検索"
-                  className="pl-8"
+                  className="pl-8 h-10"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
