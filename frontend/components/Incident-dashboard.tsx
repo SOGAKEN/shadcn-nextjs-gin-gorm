@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { AlertCircle, CheckCircle, Clock, Search, Calendar as CalendarIcon, PlusCircle, CheckIcon, MailIcon, ChevronUp, ChevronDown } from "lucide-react"
+import { AlertCircle, CheckCircle, Clock, Search, Calendar as CalendarIcon, PlusCircle, CheckIcon, MailIcon, ChevronUp, ChevronDown, AlertTriangle } from "lucide-react"
 import { format, isWithinInterval, endOfDay } from "date-fns"
 import { ja } from "date-fns/locale"
 import { DateRange } from "react-day-picker"
@@ -316,8 +316,31 @@ export function IncidentDashboard() {
     }
   }
 
+  const handleEscalation = () => {
+    if (selectedIncident) {
+      const newResponse: IncidentResponse = {
+        id: selectedIncident.responses.length + 1,
+        date: format(new Date(), "yyyy-MM-dd HH:mm"),
+        content: "インシデントがエスカレーションされました。",
+        responder: responderName || "システム",
+      }
+      const updatedIncident = {
+        ...selectedIncident,
+        status: "調査中" as const,
+        priority: "高" as const,
+        responses: [...selectedIncident.responses, newResponse],
+      }
+      const updatedIncidents = incidentsState.map(inc => 
+        inc.id === selectedIncident.id ? updatedIncident : inc
+      )
+      setIncidentsState(updatedIncidents)
+      setSelectedIncident(updatedIncident)
+      alert("インシデントがエスカレーションされました。")
+    }
+  }
+
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4  md:grid-cols-2 lg:grid-cols-4">
       <Card className="col-span-1 md:col-span-1">
         <CardHeader>
           <CardTitle>未着手インシデント</CardTitle>
@@ -588,14 +611,18 @@ export function IncidentDashboard() {
                     <p>{selectedIncident?.priority}</p>
                   </div>
                 </div>
-                {selectedIncident?.status !== "解決済み" && (
-                  <div>
-                    <h4 className="font-semibold mb-2">ステータス更新</h4>
-                    <Button onClick={handleStatusUpdate} variant="outline">解決済み</Button>
-                  </div>
-                )}
                 <div>
-                  <h4 className="font-semibold mb-2">対応履歴</h4>
+                  <h4 className="font-semibold mb-2">ステータス更新</h4>
+                  <Button onClick={handleStatusUpdate} variant="outline">解決済み</Button>
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-semibold">対応履歴</h4>
+                    <Button onClick={handleEscalation} variant="destructive" className="flex items-center">
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      エスカレーション
+                    </Button>
+                  </div>
                   <div className="max-h-[200px] overflow-y-auto">
                     <Table>
                       <TableHeader>
