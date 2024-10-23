@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { AlertCircle, CheckCircle, Clock, Search, Calendar as CalendarIcon, Plus, CheckIcon } from "lucide-react"
+import { AlertCircle, CheckCircle, Clock, Search, Calendar as CalendarIcon, PlusCircle, CheckIcon, MailIcon, ChevronDown, ChevronUp } from "lucide-react"
 import { format, isWithinInterval, endOfDay } from "date-fns"
 import { ja } from "date-fns/locale"
 import { DateRange } from "react-day-picker"
@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 import { Separator } from "@/components/ui/separator"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import {
   Command,
   CommandEmpty,
@@ -44,6 +45,9 @@ interface Incident {
   assignee: string
   priority: "高" | "中" | "低"
   responses: IncidentResponse[]
+  from: string
+  to: string
+  subject: string
 }
 
 const incidents: Incident[] = [
@@ -52,40 +56,52 @@ const incidents: Incident[] = [
     datetime: "2023-05-15 14:30",
     status: "未着手",
     judgment: "要対応",
-    content: "データベース接続エラー",
-    assignee: "",
+    content: "データベースサーバーへの接続が突然失われました。アプリケーションがデータを取得・保存できない状態です。ユーザーからの報告が複数入っています。\n\n緊急対応が必要です。データベース管理者に連絡を取り、サーバーの状態を確認してください。また、一時的な代替策としてキャッシュの使用を検討してください。",
+    assignee: "山田太郎",
     priority: "高",
     responses: [],
+    from: "alert@system.incidenttolls.com",
+    to: "support@incidenttolls.com",
+    subject: "【緊急】データベース接続エラー",
   },
   {
     id: 2,
     datetime: "2023-05-15 11:45",
     status: "調査中",
     judgment: "要対応",
-    content: "アプリケーションの応答遅延",
-    assignee: "",
+    content: "ユーザーから、アプリケーションの応答が通常より遅いという報告が増えています。特に検索機能と注文処理で顕著な遅延が見られます。\n\nサーバーのリソース使用率を確認し、必要に応じてスケールアップを検討してください。また、データベースのクエリ最適化も並行して進めてください。",
+    assignee: "佐藤花子",
     priority: "中",
     responses: [],
+    from: "monitoring@system.incidenttolls.com",
+    to: "support@incidenttolls.com",
+    subject: "アプリケーションのパフォーマンス低下",
   },
   {
     id: 3,
     datetime: "2023-05-14 23:15",
     status: "解決済み",
     judgment: "静観",
-    content: "ユーザー認証の問題",
-    assignee: "",
+    content: "一部のユーザーがログインできない問題が報告されました。調査の結果、認証サーバーの一時的な過負荷が原因でした。\n\nサーバーの再起動により問題は解決しましたが、今後の対策として負荷分散の改善を検討してください。",
+    assignee: "鈴木一郎",
     priority: "低",
     responses: [],
+    from: "security@system.incidenttolls.com",
+    to: "support@incidenttolls.com",
+    subject: "ユーザー認証の問題",
   },
   {
     id: 4,
     datetime: "2023-05-14 18:00",
     status: "未着手",
     judgment: "静観",
-    content: "バックアップ失敗",
-    assignee: "",
+    content: "定期バックアップジョブが失敗しました。エラーログを確認したところ、ストレージの容量不足が原因と思われます。\n\nバックアップサーバーのディスク使用量を確認し、不要なデータの削除または追加のストレージの確保を行ってください。また、バックアップ戦略の見直しも検討してください。",
+    assignee: "高橋次郎",
     priority: "中",
     responses: [],
+    from: "backup@system.incidenttolls.com",
+    to: "support@incidenttolls.com",
+    subject: "バックアップ失敗のお知らせ",
   },
 ]
 
@@ -123,15 +139,41 @@ function DataTableFacetedFilter({
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" className="w-full h-10 justify-between" size="sm">
-          <span className="text-left font-normal">{title}</span>
+        <Button variant="outline" size="sm" className="h-8 border-dashed">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          {title}
           {selectedValues.size > 0 && (
-            <Badge
-              variant="secondary"
-              className="rounded-sm px-1 font-normal ml-auto"
-            >
-              {selectedValues.size}
-            </Badge>
+            <>
+              <Separator orientation="vertical" className="mx-2 h-4" />
+              <Badge
+                variant="secondary"
+                className="rounded-sm px-1 font-normal lg:hidden"
+              >
+                {selectedValues.size}
+              </Badge>
+              <div className="hidden space-x-1 lg:flex">
+                {selectedValues.size > 2 ? (
+                  <Badge
+                    variant="secondary"
+                    className="rounded-sm px-1 font-normal"
+                  >
+                    {selectedValues.size} 選択済み
+                  </Badge>
+                ) : (
+                  options
+                    .filter((option) => selectedValues.has(option.value))
+                    .map((option) => (
+                      <Badge
+                        variant="secondary"
+                        key={option.value}
+                        className="rounded-sm px-1 font-normal"
+                      >
+                        {option.label}
+                      </Badge>
+                    ))
+                )}
+              </div>
+            </>
           )}
         </Button>
       </PopoverTrigger>
@@ -295,10 +337,10 @@ export function IncidentDashboard() {
         </CardHeader>
         <CardContent>
           <div className="text-4xl font-bold">{investigating}</div>
-          <p className="text-sm text-muted-foreground">件</p>
+          <p className="text-sm  text-muted-foreground">件</p>
         </CardContent>
       </Card>
-      <Card className="col-span-2 md:col-span-2 lg:col-span-4">
+      <Card className="col-span-2 md:col-span-2  lg:col-span-4">
         <CardHeader>
           <CardTitle>最近のインシデント</CardTitle>
           <CardDescription>
@@ -306,8 +348,9 @@ export function IncidentDashboard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-            <div className="w-full h-10">
+          <div className="flex flex-wrap gap-4 mb-4 items-start">
+            <div className="flex-1 min-w-[200px]">
+              <Label className="mb-2">ステータス</Label>
               <DataTableFacetedFilter
                 title="ステータス"
                 options={[
@@ -319,7 +362,8 @@ export function IncidentDashboard() {
                 onChange={setStatusFilter}
               />
             </div>
-            <div className="w-full h-10">
+            <div className="flex-1 min-w-[200px]">
+              <Label className="mb-2">判定</Label>
               <DataTableFacetedFilter
                 title="判定"
                 options={[
@@ -330,10 +374,11 @@ export function IncidentDashboard() {
                 onChange={setJudgmentFilter}
               />
             </div>
-            <div className="w-full h-10">
+            <div className="flex-1 min-w-[200px]">
+              <Label className="mb-2">担当者</Label>
               <DataTableFacetedFilter
                 title="担当者"
-                options={Array.from(new Set(incidentsState.map(i => i.assignee).filter(Boolean))).map(assignee => ({
+                options={Array.from(new Set(incidentsState.map(i => i.assignee))).map(assignee => ({
                   label: assignee,
                   value: assignee,
                 }))}
@@ -341,12 +386,13 @@ export function IncidentDashboard() {
                 onChange={setAssigneeFilter}
               />
             </div>
-            <div className="w-full h-10">
+            <div className="flex-1 min-w-[200px]">
+              <Label className="mb-2">日付範囲</Label>
               <Popover>
                 <PopoverTrigger asChild>
                   <Button
                     variant={"outline"}
-                    className={`w-full h-10 justify-start text-left font-normal ${
+                    className={`w-full justify-start text-left font-normal ${
                       !dateRange?.from && !dateRange?.to && "text-muted-foreground"
                     }`}
                   >
@@ -377,19 +423,20 @@ export function IncidentDashboard() {
                 </PopoverContent>
               </Popover>
             </div>
-            <div className="w-full h-10 relative">
-              <div className="relative w-full h-10">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <div className="flex-1 min-w-[200px] relative">
+              <Label className="mb-2">検索</Label>
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="インシデントを検索"
-                  className="w-full  h-10 pl-9"
+                  className="pl-8"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
             </div>
           </div>
-          <div className="mt-4 flex justify-end">
+          <div className="flex justify-end mb-4">
             <Button onClick={resetFilters} variant="outline">
               フィルター解除
             </Button>
@@ -435,7 +482,7 @@ export function IncidentDashboard() {
                   </TableCell>
                   <TableCell>{incident.datetime}</TableCell>
                   <TableCell>
-                    <div className="font-medium">{incident.content}</div>
+                    <div className="font-medium">{incident.content.substring(0, 50)}...</div>
                     <div className="text-sm text-muted-foreground">
                       優先度: {incident.priority}
                     </div>
@@ -451,12 +498,42 @@ export function IncidentDashboard() {
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-[80vw] w-full p-0 h-[95vh]">
           <div className="grid grid-cols-2 h-full">
-            <div className="p-6 bg-gray-100 flex flex-col">
-              <DialogTitle className="text-2xl font-bold mb-4">インシデント内容</DialogTitle>
-              <DialogDescription className="text-lg mb-2">
-                ID: {selectedIncident?.id}
-              </DialogDescription>
-              <p className="text-lg flex-grow">{selectedIncident?.content}</p>
+            <div className="p-6 bg-gray-100 flex flex-col overflow-hidden">
+              <div className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-full">
+                <Accordion type="single" collapsible className="w-full">
+                  {[selectedIncident, ...incidentsState.filter(i => i.id !== selectedIncident?.id)].map((incident, index) => (
+                    <AccordionItem value={`item-${index}`} key={incident?.id}>
+                      <AccordionTrigger className="px-4 py-2 hover:bg-gray-50">
+                        <div className="flex items-center space-x-2 text-left w-full">
+                          <MailIcon className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                          <div className="flex-grow min-w-0">
+                            <div className="font-semibold truncate">{incident?.subject}</div>
+                            <div className="text-sm text-gray-500 flex justify-between">
+                              <span className="truncate">{incident?.from}</span>
+                              <span className="flex-shrink-0 ml-2">{incident?.datetime.split(' ')[1]}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="p-4 space-y-2">
+                          <div>
+                            <span className="font-semibold">From:</span> {incident?.from}
+                          </div>
+                          <div>
+                            <span className="font-semibold">To:</span> {incident?.to}
+                          </div>
+                          <div>
+                            <span className="font-semibold">Date:</span> {incident?.datetime}
+                          </div>
+                          <Separator className="my-4" />
+                          <div className="whitespace-pre-wrap">{incident?.content}</div>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </div>
             </div>
             <div className="p-6 overflow-y-auto h-full">
               <div className="space-y-6">
@@ -476,10 +553,6 @@ export function IncidentDashboard() {
                   <div>
                     <h4 className="font-semibold">優先度</h4>
                     <p>{selectedIncident?.priority}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">発生日時</h4>
-                    <p>{selectedIncident?.datetime}</p>
                   </div>
                 </div>
                 {selectedIncident?.status !== "解決済み" && (
@@ -514,15 +587,15 @@ export function IncidentDashboard() {
                 <div>
                   <h4 className="font-semibold mb-2">新規対応記録</h4>
                   <div className="grid gap-2">
-                    <Input
-                      placeholder="名前"
-                      value={responderName}
-                      onChange={(e) => setResponderName(e.target.value)}
-                    />
                     <Textarea
                       placeholder="対応内容を入力してください"
                       value={newResponse}
                       onChange={(e) => setNewResponse(e.target.value)}
+                    />
+                    <Input
+                      placeholder="名前"
+                      value={responderName}
+                      onChange={(e) => setResponderName(e.target.value)}
                     />
                     <Button onClick={handleResponseSubmit}>記録を追加</Button>
                   </div>
