@@ -1,17 +1,17 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { CalendarIcon, ClockIcon } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { CalendarIcon, ClockIcon } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -19,84 +19,88 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover'
-import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/components/ui/use-toast'
-import { cn } from '@/lib/utils'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { format } from 'date-fns'
-import { useForm } from 'react-hook-form'
-import * as z from 'zod'
+} from "@/components/ui/popover";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { format } from "date-fns";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
-const formSchema = z.object({
-  title: z.string().min(2, {
-    message: 'タイトルは2文字以上で入力してください。',
-  }),
-  startDateTime: z.date({
-    required_error: '開始日時を選択してください。',
-  }),
-  endDateTime: z.date({
-    required_error: '終了日時を選択してください。',
-  }),
-  worker: z.string().min(1, {
-    message: '作業者を入力してください。',
-  }),
-  verifier: z.string().min(1, {
-    message: '確認者を入力してください。',
-  }),
-  target: z.string().min(1, {
-    message: '対象を入力してください。',
-  }),
-  client: z.string().min(1, {
-    message: 'クライアントを入力してください。',
-  }),
-  content: z.string().min(10, {
-    message: '内容は10文字以上で入力してください。',
-  }),
-}).refine((data) => data.endDateTime > data.startDateTime, {
-  message: "終了日時は開始日時より後である必要があります。",
-  path: ["endDateTime"],
-});
+const formSchema = z
+  .object({
+    title: z.string().min(2, {
+      message: "タイトルは2文字以上で入力してください。",
+    }),
+    startDateTime: z.date({
+      required_error: "開始日時を選択してください。",
+    }),
+    endDateTime: z.date({
+      required_error: "終了日時を選択してください。",
+    }),
+    worker: z.string().min(1, {
+      message: "作業者を入力してください。",
+    }),
+    verifier: z.string().min(1, {
+      message: "確認者を入力してください。",
+    }),
+    target: z.string().min(1, {
+      message: "対象を入力してください。",
+    }),
+    client: z.string().min(1, {
+      message: "クライアントを入力してください。",
+    }),
+    content: z.string().min(10, {
+      message: "内容は10文字以上で入力してください。",
+    }),
+  })
+  .refine((data) => data.endDateTime > data.startDateTime, {
+    message: "終了日時は開始日時より後である必要があります。",
+    path: ["endDateTime"],
+  });
 
 export function Page() {
-  const router = useRouter()
-  const { toast } = useToast()
+  const router = useRouter();
+  const { toast } = useToast();
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      title: '',
+      title: "",
       startDateTime: new Date(),
       endDateTime: new Date(new Date().getTime() + 60 * 60 * 1000), // 1時間後
-      worker: '',
-      verifier: '',
-      target: '',
-      client: '',
-      content: '',
+      worker: "",
+      verifier: "",
+      target: "",
+      client: "",
+      content: "",
     },
-  })
+  });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
+    console.log(values);
     toast({
-      title: '作業連絡が送信されました',
-      description: '作業連絡が正常に登録されました。',
-    })
-    router.push('/tasks')
+      title: "作業連絡が送信されました",
+      description: "作業連絡が正常に登録されました。",
+    });
+    router.push("/tasks");
   }
 
-  const DateTimePicker = ({ field, label }: { field: any, label: string }) => {
+  const DateTimePicker = ({ field, label }: { field: any; label: string }) => {
     const [date, setDate] = useState<Date | undefined>(field.value);
-    const [time, setTime] = useState(format(field.value || new Date(), 'HH:mm'));
+    const [time, setTime] = useState(
+      format(field.value || new Date(), "HH:mm"),
+    );
 
     const handleDateSelect = (newDate: Date | undefined) => {
       if (newDate) {
-        const [hours, minutes] = time.split(':').map(Number);
+        const [hours, minutes] = time.split(":").map(Number);
         const updatedDate = new Date(newDate);
         updatedDate.setHours(hours);
         updatedDate.setMinutes(minutes);
@@ -109,7 +113,7 @@ export function Page() {
       const newTime = e.target.value;
       setTime(newTime);
       if (date) {
-        const [hours, minutes] = newTime.split(':').map(Number);
+        const [hours, minutes] = newTime.split(":").map(Number);
         const updatedDate = new Date(date);
         updatedDate.setHours(hours);
         updatedDate.setMinutes(minutes);
@@ -124,13 +128,17 @@ export function Page() {
           <PopoverTrigger asChild>
             <FormControl>
               <Button
-                variant={'outline'}
+                variant={"outline"}
                 className={cn(
-                  'w-full pl-3 text-left font-normal',
-                  !date && 'text-muted-foreground'
+                  "w-full pl-3 text-left font-normal",
+                  !date && "text-muted-foreground",
                 )}
               >
-                {date ? format(date, 'yyyy年MM月dd日 HH:mm') : <span>日時を選択</span>}
+                {date ? (
+                  format(date, "yyyy年MM月dd日 HH:mm")
+                ) : (
+                  <span>日時を選択</span>
+                )}
                 <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
               </Button>
             </FormControl>
@@ -155,8 +163,8 @@ export function Page() {
         </Popover>
         <FormMessage />
       </FormItem>
-    )
-  }
+    );
+  };
 
   return (
     <div className="container mx-auto py-10 px-4 md:px-6 lg:px-8">
@@ -270,11 +278,14 @@ export function Page() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">作業連絡を送信</Button>
+              <Button type="submit" className="w-full">
+                作業連絡を送信
+              </Button>
             </form>
           </Form>
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }
+

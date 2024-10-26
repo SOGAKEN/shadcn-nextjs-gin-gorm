@@ -1,0 +1,73 @@
+type Incident {
+  id: ID!
+  datetime: String!
+  status: String!
+  judgment: String!
+  content: String!
+  assignee: String!
+  priority: String!
+  fromEmail: String!
+  toEmail: String!
+  subject: String!
+  relations: [IncidentRelation!]
+  responses: [Response!]
+}
+
+type IncidentRelation {
+  id: ID!
+  incidentId: ID!
+  relatedIncidentId: ID!
+  relatedIncident: Incident
+}
+
+type Response {
+  id: ID!
+  incidentId: ID!
+  datetime: String!
+  responder: String!
+  content: String!
+}
+
+input IncidentInput {
+  datetime: String!
+  status: String!
+  judgment: String!
+  content: String!
+  assignee: String!
+  priority: String!
+  fromEmail: String!
+  toEmail: String!
+  subject: String!
+}
+
+input ResponseInput {
+  incidentId: ID!
+  datetime: String!
+  responder: String!
+  content: String!
+}
+
+input IncidentRelationInput {
+  incidentId: ID!
+  relatedIncidentId: ID!
+}
+
+type Query {
+  incidents: [Incident!]!
+  incident(id: ID!): Incident
+  responses(incidentId: ID!): [Response!]!
+  relations(incidentId: ID!): [IncidentRelation!]!
+}
+
+type Mutation {
+  createIncident(input: IncidentInput!): Incident!
+  updateIncident(id: ID!, input: IncidentInput!): Incident!
+  deleteIncident(id: ID!): Boolean!
+
+  createResponse(input: ResponseInput!): Response!
+  updateResponse(id: ID!, input: ResponseInput!): Response!
+  deleteResponse(id: ID!): Boolean!
+
+  createIncidentRelation(input: IncidentRelationInput!): IncidentRelation!
+  deleteIncidentRelation(id: ID!): Boolean!
+}
