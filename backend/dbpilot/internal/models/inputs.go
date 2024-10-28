@@ -13,7 +13,7 @@ type IncidentInput struct {
 	Subject   string `json:"subject"`
 }
 
-// ResponseInput は対応履歴作成/更新時の入力データを表す構造体
+// ResponseInput は対応履歴作成時の入力データを表す構造体
 type ResponseInput struct {
 	IncidentID uint   `json:"incident_id"`
 	DateTime   string `json:"datetime"`

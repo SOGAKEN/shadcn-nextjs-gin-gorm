@@ -3,9 +3,9 @@ package main
 import (
 	"dbpilot/internal/config"
 	"dbpilot/internal/database"
+	"dbpilot/internal/database/migrations"
 	"dbpilot/internal/graphql/generated"
 	"dbpilot/internal/graphql/resolvers"
-	"dbpilot/internal/models"
 	"fmt"
 	"log"
 
@@ -33,26 +33,32 @@ func playgroundHandler() gin.HandlerFunc {
 }
 
 func main() {
-	// Load configuration
+	// 設定の読み込み
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Initialize database
+	// データベースの初期化
 	err = database.InitDB(cfg)
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	// Auto migrate database models
-	err = database.DB.AutoMigrate(
-		&models.Incident{},
-		&models.IncidentRelation{},
-		&models.Response{},
-	)
+	// マイグレーションの実行
+	if err := migrations.RunMigrations(database.DB); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	// マイグレーション履歴の表示
+	history, err := migrations.GetMigrationHistory(database.DB)
 	if err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
+		log.Printf("Warning: Failed to get migration history: %v", err)
+	} else {
+		log.Printf("Applied migrations:")
+		for _, m := range history {
+			log.Printf("- %s (applied at: %v)", m.Name, m.AppliedAt)
+		}
 	}
 
 	// Initialize resolver with database connection

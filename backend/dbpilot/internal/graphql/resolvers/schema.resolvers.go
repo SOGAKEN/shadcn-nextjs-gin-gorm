@@ -22,6 +22,16 @@ func (r *incidentResolver) Datetime(ctx context.Context, obj *models.Incident) (
 	return obj.DateTime.Format(time.RFC3339), nil
 }
 
+// CreatedAt is the resolver for the createdAt field.
+func (r *incidentResolver) CreatedAt(ctx context.Context, obj *models.Incident) (string, error) {
+	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
+}
+
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *incidentResolver) UpdatedAt(ctx context.Context, obj *models.Incident) (string, error) {
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
+}
+
 // ID is the resolver for the id field.
 func (r *incidentRelationResolver) ID(ctx context.Context, obj *models.IncidentRelation) (string, error) {
 	panic(fmt.Errorf("not implemented: ID - id"))
@@ -35,6 +45,16 @@ func (r *incidentRelationResolver) IncidentID(ctx context.Context, obj *models.I
 // RelatedIncidentID is the resolver for the relatedIncidentId field.
 func (r *incidentRelationResolver) RelatedIncidentID(ctx context.Context, obj *models.IncidentRelation) (string, error) {
 	panic(fmt.Errorf("not implemented: RelatedIncidentID - relatedIncidentId"))
+}
+
+// CreatedAt is the resolver for the createdAt field.
+func (r *incidentRelationResolver) CreatedAt(ctx context.Context, obj *models.IncidentRelation) (string, error) {
+	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
+}
+
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *incidentRelationResolver) UpdatedAt(ctx context.Context, obj *models.IncidentRelation) (string, error) {
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
 }
 
 // CreateIncident は新しいインシデントを作成します
@@ -147,6 +167,16 @@ func (r *responseResolver) Datetime(ctx context.Context, obj *models.Response) (
 	panic(fmt.Errorf("not implemented: Datetime - datetime"))
 }
 
+// CreatedAt is the resolver for the createdAt field.
+func (r *responseResolver) CreatedAt(ctx context.Context, obj *models.Response) (string, error) {
+	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
+}
+
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *responseResolver) UpdatedAt(ctx context.Context, obj *models.Response) (string, error) {
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
+}
+
 // IncidentID is the resolver for the incidentId field.
 func (r *incidentRelationInputResolver) IncidentID(ctx context.Context, obj *models.IncidentRelationInput, data string) error {
 	panic(fmt.Errorf("not implemented: IncidentID - incidentId"))
@@ -194,15 +224,3 @@ type queryResolver struct{ *Resolver }
 type responseResolver struct{ *Resolver }
 type incidentRelationInputResolver struct{ *Resolver }
 type responseInputResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	type Resolver struct {
-	DB *gorm.DB
-}
-*/

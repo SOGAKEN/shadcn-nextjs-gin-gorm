@@ -9,15 +9,11 @@ type Incident {
   fromEmail: String!
   toEmail: String!
   subject: String!
-  relations: [IncidentRelation!]
   responses: [Response!]
-}
-
-type IncidentRelation {
-  id: ID!
-  incidentId: ID!
-  relatedIncidentId: ID!
-  relatedIncident: Incident
+  relatedToIncidents: [IncidentRelation!]
+  relatedFromIncidents: [IncidentRelation!]
+  createdAt: String!
+  updatedAt: String!
 }
 
 type Response {
@@ -26,6 +22,18 @@ type Response {
   datetime: String!
   responder: String!
   content: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type IncidentRelation {
+  id: ID!
+  incidentId: ID!
+  relatedIncidentId: ID!
+  incident: Incident!
+  relatedIncident: Incident!
+  createdAt: String!
+  updatedAt: String!
 }
 
 input IncidentInput {
